@@ -9,10 +9,10 @@ const state = {
   selectedCategoryId: "recommended",
   categoryScrollLeft: 0,
   menuScrollY: 0,
-  drinksScrollY: 0,
-  selectedItemId: "chicken-muffin-set",
-  selectedDrinkId: null,
-  selectedUseMethod: null,
+  detailScrollY: 0,
+  selectedItemId: "daily-bento",
+  selectedOptions: {},
+  expandedOptionGroupId: null,
   selectedPayment: null,
   quantity: 1,
   cartItems: [],
@@ -26,8 +26,40 @@ function selectedItem() {
   return menuConfig.items.find((item) => item.id === state.selectedItemId);
 }
 
-function selectedDrink() {
-  return menuConfig.drinks.find((drink) => drink.id === state.selectedDrinkId);
+function selectedOptionGroups() {
+  const optionGroupIds = selectedItem().optionGroupIds || [];
+  return optionGroupIds.map((groupId) => menuConfig.optionGroups.find((group) => group.id === groupId)).filter(Boolean);
+}
+
+function defaultOptionsForItem(item) {
+  const optionGroupIds = item.optionGroupIds || [];
+  return optionGroupIds.reduce((defaults, groupId) => {
+    const group = menuConfig.optionGroups.find((item) => item.id === groupId);
+    if (group && group.defaultChoiceId) defaults[group.id] = group.defaultChoiceId;
+    return defaults;
+  }, {});
+}
+
+function selectedOptionDetails() {
+  return selectedOptionGroups().flatMap((group) => {
+    const choice = group.choices.find((item) => item.id === state.selectedOptions[group.id]);
+    if (!choice) return [];
+    return [{
+      groupId: group.id,
+      groupLabel: group.label,
+      choiceId: choice.id,
+      choiceLabel: choice.label,
+      priceDelta: choice.priceDelta,
+    }];
+  });
+}
+
+function optionsComplete() {
+  return selectedOptionGroups().every((group) => !group.required || state.selectedOptions[group.id]);
+}
+
+function selectedUnitPrice() {
+  return selectedItem().price + selectedOptionDetails().reduce((total, option) => total + option.priceDelta, 0);
 }
 
 function yen(value) {
@@ -39,20 +71,24 @@ function cartItemCount() {
 }
 
 function cartTotalPrice() {
-  return state.cartItems.reduce((total, cartItem) => total + cartItem.item.price * cartItem.quantity, 0);
+  return state.cartItems.reduce((total, cartItem) => total + cartItem.unitPrice * cartItem.quantity, 0);
 }
 
 function addSelectedItemToCart() {
   const item = selectedItem();
+  const options = selectedOptionDetails();
   state.cartItems.push({
     item: { ...item },
-    drink: selectedDrink() ? { ...selectedDrink() } : null,
+    options,
+    unitPrice: item.price + options.reduce((total, option) => total + option.priceDelta, 0),
     quantity: state.quantity,
   });
   state.quantity = 1;
-  state.selectedDrinkId = null;
+  state.selectedOptions = {};
+  state.expandedOptionGroupId = null;
+  state.detailScrollY = 0;
   state.screen = "menu";
-  state.history = state.history.filter((screen) => screen !== "detail" && screen !== "drinks");
+  state.history = state.history.filter((screen) => screen !== "detail");
   render();
 }
 
@@ -97,12 +133,7 @@ function bottomNav(active) {
 }
 
 function homeScreen() {
-  return '<section class="brand-mark">M</section>' +
-    '<section class="notice">公式アプリのお知らせが表示されます</section>' +
-    '<section class="point-card"><div><small>ご利用可能なポイント</small><strong>1,601 pt</strong></div><div class="qr">QR</div></section>' +
-
-    '<section class="campaign"><p>期間限定</p><strong>朝メニュー限定フェア</strong><button data-action="store">詳しく見る</button></section>' +
-    bottomNav("home");
+  return bottomNav("home");
 }
 
 function mapArea() {
@@ -125,9 +156,7 @@ function storeCard(store, options = {}) {
 function storeScreen() {
   return topBar("モバイルオーダー", {}) +
     '<p class="sub-title">ご利用の店舗を選択してください</p>' +
-    '<section class="search-row"><div class="search-box">店舗を検索</div><button>絞り込み</button></section>' +
-    mapArea() +
-    '<section class="store-sheet"><div class="handle"></div><h2 class="store-list-title">店舗一覧</h2>' + storeConfig.stores.map(storeCard).join("") + '</section>' +
+    '<section class="store-sheet"><h2 class="store-list-title">店舗一覧</h2>' + storeConfig.stores.map(storeCard).join("") + '</section>' +
     bottomNav("order");
 }
 
@@ -154,7 +183,10 @@ function deliveryScreen() {
   return topBar("デリバリー", {}) + '<section class="blank-screen"></section>' + bottomNav("delivery");
 }
 function menuScreen() {
-  const visibleItems = menuConfig.items.filter((item) => item.category === state.selectedCategoryId);
+  const visibleItems = menuConfig.items.filter((item) => {
+    if (state.selectedCategoryId === "recommended") return item.recommended;
+    return item.category === state.selectedCategoryId;
+  });
   return topBar(selectedStore().name + "で受け取り", { back: true }) +
     categoryTabs() +
     '<p class="note">※特定店舗の価格が適用されます。</p>' +
@@ -162,7 +194,7 @@ function menuScreen() {
 }
 
 function orderBar(primaryText, action, disabled) {
-  return '<section class="order-bar"><div class="order-total"><strong>' + yen(selectedItem().price * state.quantity) + '</strong><div class="quantity"><button data-action="minus">−</button><span>' + state.quantity + '</span><button data-action="plus">＋</button></div></div><div class="order-actions"><button class="outline" data-action="back">戻る</button><button class="primary" data-action="' + action + '" ' + (disabled ? 'disabled' : '') + '>' + primaryText + '</button></div></section>';
+  return '<section class="order-bar"><div class="order-total"><strong>' + yen(selectedUnitPrice() * state.quantity) + '</strong><div class="quantity"><button data-action="minus">−</button><span>' + state.quantity + '</span><button data-action="plus">＋</button></div></div><div class="order-actions"><button class="outline" data-action="back">戻る</button><button class="primary" data-action="' + action + '" ' + (disabled ? 'disabled' : '') + '>' + primaryText + '</button></div></section>';
 }
 
 function detailComponentRows(item) {
@@ -174,29 +206,35 @@ function detailComponentRows(item) {
   }).join("");
 }
 
-function detailScreen() {
-  const item = selectedItem();
-  const isSetItem = item.itemType !== "single";
-  return topBar(item.name, { back: true }) +
-    '<section class="detail-hero"><img src="./assets/images/no-image.jpg" alt="画像未設定" class="detail-hero-image" /></section>' +
-    '<section class="detail-notes"><p>※一部店舗及びデリバリーでは価格が異なります。</p>' + (isSetItem ? '<p>※セットドリンクをお選びください。</p>' : '') + '</section>' +
-    '<section class="detail-list">' + detailComponentRows(item) + '</section>' +
-    (isSetItem ? '<section class="choice-preview"><h2>お選びください</h2><div><button data-action="drinks">ドリンクA</button><button data-action="drinks">ドリンクB</button></div></section>' + orderBar("ドリンクを選ぶ", "drinks", false) : orderBar("カートに追加", "add-cart", false));
+function optionSections() {
+  const optionSections = selectedOptionGroups().map((group) => {
+    const selectedChoice = group.choices.find((choice) => choice.id === state.selectedOptions[group.id]);
+    const selectedPrice = selectedChoice && selectedChoice.priceDelta > 0 ? '<span>＋' + yen(selectedChoice.priceDelta) + '</span>' : '';
+    const choices = group.choices.map((choice) => {
+      const priceText = choice.priceDelta > 0 ? '<span>＋' + yen(choice.priceDelta) + '</span>' : '';
+      return '<button class="option-card ' + (state.selectedOptions[group.id] === choice.id ? 'is-selected' : '') + '" data-action="select-option" data-group-id="' + group.id + '" data-id="' + choice.id + '"><strong>' + choice.label + '</strong>' + priceText + '</button>';
+    }).join("");
+    const choiceList = state.expandedOptionGroupId === group.id ? '<div class="option-grid">' + choices + '</div>' : '';
+    return '<section class="option-group"><div class="option-summary"><div><h2>' + group.label + '</h2><strong>' + (selectedChoice ? selectedChoice.label : "未選択") + '</strong>' + selectedPrice + '</div><button class="outline-small" data-action="toggle-option" data-group-id="' + group.id + '">変更</button></div>' + choiceList + '</section>';
+  }).join("");
+  return optionSections ? '<div class="option-groups">' + optionSections + '</div>' : '';
 }
 
-function drinksScreen() {
-  return topBar("ドリンクを選択", { back: true }) +
-    '<section class="choice-section"><h2>お選びください</h2><div class="drink-grid">' + menuConfig.drinks.map((drink) => {
-      return '<button class="drink-card ' + (state.selectedDrinkId === drink.id ? 'is-selected' : '') + '" data-action="select-drink" data-id="' + drink.id + '"><div class="product-image-placeholder" aria-hidden="true"></div><strong>' + drink.name + '</strong></button>';
-    }).join("") + '</div></section>' +
-    orderBar("カートに追加", "add-cart", !state.selectedDrinkId);
+function detailScreen() {
+  const item = selectedItem();
+  return topBar(item.name, { back: true }) +
+    '<section class="detail-hero"><img src="./assets/images/no-image.jpg" alt="画像未設定" class="detail-hero-image" /></section>' +
+    '<section class="detail-notes"><p>※一部店舗及びデリバリーでは価格が異なります。</p></section>' +
+    '<section class="detail-list">' + detailComponentRows(item) + '</section>' +
+    optionSections() +
+    orderBar("カートに追加", "add-cart", !optionsComplete());
 }
 
 function cartSummary() {
   const itemRows = state.cartItems.map((cartItem, index) => {
     const componentLines = (cartItem.item.components || []).map((componentName) => '<p>' + componentName + '</p>').join("");
-    const drinkLine = cartItem.item.itemType === "single" ? "" : '<p>ドリンク: ' + (cartItem.drink ? cartItem.drink.name : "未選択") + '</p>';
-    return '<div class="cart-summary-item"><div class="cart-summary-main"><strong>' + cartItem.item.name + '</strong>' + componentLines + drinkLine + '<span class="cart-summary-price">' + yen(cartItem.item.price) + '</span></div><div class="cart-summary-quantity"><button data-action="cart-minus" data-index="' + index + '">−</button><span>' + cartItem.quantity + '</span><button data-action="cart-plus" data-index="' + index + '">＋</button></div></div>';
+    const optionLines = (cartItem.options || []).map((option) => '<p>' + option.groupLabel + '：' + option.choiceLabel + (option.priceDelta > 0 ? '（＋' + yen(option.priceDelta) + '）' : '') + '</p>').join("");
+    return '<div class="cart-summary-item"><div class="cart-summary-main"><strong>' + cartItem.item.name + '</strong>' + componentLines + optionLines + '<span class="cart-summary-price">' + yen(cartItem.unitPrice) + '</span></div><div class="cart-summary-quantity"><button data-action="cart-minus" data-index="' + index + '">−</button><span>' + cartItem.quantity + '</span><button data-action="cart-plus" data-index="' + index + '">＋</button></div></div>';
   }).join("");
   return '<section class="cart-summary"><h2>ご注文内容</h2>' + itemRows + '<div class="cart-summary-total"><span>合計</span><strong>' + yen(cartTotalPrice()) + '</strong></div></section>';
 }
@@ -205,22 +243,20 @@ function cartScreen() {
   return topBar("ご注文内容の確認", { back: true }) +
     '<section class="section-block"><h2>受け取り予定の店舗</h2>' + storeCard(selectedStore(), { static: true }) + '</section>' +
     cartSummary() +
-    '<section class="bottom-action"><button class="primary" data-action="method">利用方法を選択</button></section>';
+    '<section class="bottom-action"><button class="primary" data-action="payment-screen">支払い方法を選択</button></section>';
 }
 
-function methodScreen() {
-  const methods = ["お持ち帰り（カウンター受け取り）", "店内でお食事（カウンター受け取り）"];
+function paymentScreen() {
   const payments = ["d払い", "PayPay", "楽天ペイ", "au PAY", "Apple Pay", "クレジットカード"];
-  return topBar("ご注文内容の確認", { back: true }) +
-    '<section class="section-block"><h2>ご利用方法を選択してください</h2><div class="method-grid">' + methods.map((method) => '<button class="method-card ' + (state.selectedUseMethod === method ? 'is-selected' : '') + '" data-action="use-method" data-id="' + method + '"><img src="./assets/images/no-image.jpg" alt="画像未設定" class="method-card-image" /><strong>' + method + '</strong></button>').join("") + '</div></section>' +
-    '<section class="section-block muted"><h2>お支払い方法を選択してください</h2><p>受け取り番号が表示されるまで注文は確定しません。</p><div class="payment-grid">' + payments.map((payment) => '<button class="payment-card ' + (state.selectedPayment === payment ? 'is-selected' : '') + '" data-action="payment" data-id="' + payment + '"><strong>' + payment + '</strong></button>').join("") + '</div></section>' +
-    '<section class="bottom-action"><button class="primary" data-action="final" ' + (!state.selectedUseMethod || !state.selectedPayment ? 'disabled' : '') + '>確認へ進む</button></section>';
+  return topBar("支払い方法を選択", { back: true }) +
+    '<section class="section-block"><h2>お支払い方法を選択してください</h2><p>受け取り番号が表示されるまで注文は確定しません。</p><div class="payment-grid">' + payments.map((payment) => '<button class="payment-card ' + (state.selectedPayment === payment ? 'is-selected' : '') + '" data-action="payment" data-id="' + payment + '"><strong>' + payment + '</strong></button>').join("") + '</div></section>' +
+    '<section class="bottom-action"><button class="primary" data-action="final" ' + (!state.selectedPayment ? 'disabled' : '') + '>確認へ進む</button></section>';
 }
 
 function finalScreen() {
-  return topBar("できたての商品を受け取る", { back: true }) +
-    '<section class="pickup"><h2>ご利用方法</h2><div class="pickup-row"><img src="./assets/images/no-image.jpg" alt="画像未設定" class="pickup-method-image" /><strong>' + state.selectedUseMethod + '</strong><button class="outline-small" data-action="method">変更</button></div><p>※注文を確定するとご利用方法は変更できません。</p></section>' +
+  return topBar("注文内容の最終確認", { back: true }) +
     '<section class="confirm-actions"><button class="primary" data-action="complete">注文を確定</button><button class="outline" data-action="cart">注文をキャンセル</button></section>' +
+    '<section class="section-block"><h2>支払い方法</h2><p><strong>' + state.selectedPayment + '</strong></p></section>' +
     '<section class="section-block"><h2>受け取り予定の店舗</h2>' + storeCard(selectedStore(), { static: true }) + mapArea() + '</section>' + cartSummary();
 }
 
@@ -235,9 +271,8 @@ function renderScreen() {
   if (state.screen === "delivery") return deliveryScreen();
   if (state.screen === "menu") return menuScreen();
   if (state.screen === "detail") return detailScreen();
-  if (state.screen === "drinks") return drinksScreen();
   if (state.screen === "cart") return cartScreen();
-  if (state.screen === "method") return methodScreen();
+  if (state.screen === "payment") return paymentScreen();
   if (state.screen === "final") return finalScreen();
   if (state.screen === "complete") return completeScreen();
   return homeScreen();
@@ -255,8 +290,8 @@ function restoreScreenScroll() {
     window.scrollTo(0, state.menuScrollY);
     return;
   }
-  if (state.screen === "drinks") {
-    window.scrollTo(0, state.drinksScrollY);
+  if (state.screen === "detail") {
+    window.scrollTo(0, state.detailScrollY);
     return;
   }
   window.scrollTo(0, 0);
@@ -285,11 +320,23 @@ app.addEventListener("click", (event) => {
     state.selectedCategoryId = id;
     render();
   }
-  if (action === "select-item") { state.menuScrollY = window.scrollY; state.selectedItemId = id; state.selectedDrinkId = null; go("detail"); }
-  if (action === "drinks") go("drinks");
-  if (action === "select-drink") {
-    state.drinksScrollY = window.scrollY;
-    state.selectedDrinkId = id;
+  if (action === "select-item") {
+    state.menuScrollY = window.scrollY;
+    state.selectedItemId = id;
+    state.selectedOptions = defaultOptionsForItem(selectedItem());
+    state.expandedOptionGroupId = null;
+    state.detailScrollY = 0;
+    go("detail");
+  }
+  if (action === "toggle-option") {
+    state.detailScrollY = window.scrollY;
+    state.expandedOptionGroupId = state.expandedOptionGroupId === button.dataset.groupId ? null : button.dataset.groupId;
+    render();
+  }
+  if (action === "select-option") {
+    state.detailScrollY = window.scrollY;
+    state.selectedOptions[button.dataset.groupId] = id;
+    state.expandedOptionGroupId = null;
     render();
   }
   if (action === "add-cart") addSelectedItemToCart();
@@ -314,8 +361,7 @@ app.addEventListener("click", (event) => {
       render();
     }
   }
-  if (action === "method") go("method");
-  if (action === "use-method") { state.selectedUseMethod = id; render(); }
+  if (action === "payment-screen") go("payment");
   if (action === "payment") { state.selectedPayment = id; render(); }
   if (action === "final") go("final");
   if (action === "complete") go("complete");
