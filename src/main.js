@@ -1,5 +1,7 @@
 ﻿import { menuConfig, storeConfig } from "./config/menu-config.js";
 
+import { homeConfig } from "./config/menu-config.js";
+
 const app = document.querySelector("#app");
 
 const state = {
@@ -133,7 +135,18 @@ function bottomNav(active) {
 }
 
 function homeScreen() {
-  return bottomNav("home");
+  return '<main class="home-page">' +
+    '<header class="home-brand"><h1>' + homeConfig.storeName + '</h1></header>' +
+    '<section class="home-order-section"><h2>ご注文はこちら</h2><div class="home-order-list">' +
+      '<button class="home-order-card is-order" data-action="store"><span><strong>オーダー</strong><small>店頭で受け取る</small></span><span class="home-card-arrow" aria-hidden="true">›</span></button>' +
+      '<button class="home-order-card is-delivery" data-action="delivery"><span><strong>デリバリー</strong><small>ご指定先へお届け</small></span><span class="home-card-arrow" aria-hidden="true">›</span></button>' +
+    '</div></section>' +
+    '<section class="home-info-section"><h2>営業時間</h2><p>' + homeConfig.businessHours + '</p></section>' +
+    '<section class="home-social-section"><h2>公式SNS</h2><div class="home-social-links">' +
+      '<a href="' + homeConfig.socialLinks.instagram + '" target="_blank" rel="noopener noreferrer" aria-label="Instagramを新しいタブで開く"><span class="social-icon social-instagram" aria-hidden="true">IG</span><span>Instagram</span></a>' +
+      '<a href="' + homeConfig.socialLinks.facebook + '" target="_blank" rel="noopener noreferrer" aria-label="Facebookを新しいタブで開く"><span class="social-icon social-facebook" aria-hidden="true">f</span><span>Facebook</span></a>' +
+    '</div></section>' +
+  '</main>' + bottomNav("home");
 }
 
 function mapArea() {

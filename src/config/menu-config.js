@@ -18,6 +18,15 @@
   ],
 };
 
+export const homeConfig = {
+  storeName: "キッチンコロッケ",
+  businessHours: "10:00 ～ 20:00",
+  socialLinks: {
+    instagram: "https://www.instagram.com/ota_croquette/",
+    facebook: "https://www.facebook.com/kitchenkorokke/",
+  },
+};
+
 export const menuConfig = {
   categories: [
     { id: "recommended", label: "おすすめ" },
