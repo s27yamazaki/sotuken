@@ -120,7 +120,7 @@ function addSelectedItemToCart() {
   state.expandedOptionGroupId = null;
   state.detailScrollY = 0;
   state.screen = "menu";
-  state.history = state.history.filter((screen) => screen !== "detail");
+  if (state.history[state.history.length - 1] === "menu") state.history.pop();
   render();
 }
 
@@ -137,7 +137,17 @@ function go(screen) {
 }
 
 function back() {
-  state.screen = state.history.pop() || "home";
+  const previousScreen = state.screen;
+  const targetScreen = state.history.pop() || "home";
+  if (previousScreen === "menu" && ["home", "store", "delivery"].includes(targetScreen)) state.cartItems = [];
+  state.screen = targetScreen;
+  render();
+}
+
+function returnToCart() {
+  const cartHistoryIndex = state.history.lastIndexOf("cart");
+  if (cartHistoryIndex >= 0) state.history = state.history.slice(0, cartHistoryIndex);
+  state.screen = "cart";
   render();
 }
 
@@ -501,11 +511,11 @@ app.addEventListener("click", (event) => {
     if (state.screen === "detail" && state.history[state.history.length - 1] === "menu") backWithScreenTransition();
     else back();
   }
-  if (action === "home") { state.screen = "home"; state.history = []; render(); }
+  if (action === "home") { state.cartItems = []; state.screen = "home"; state.history = []; render(); }
   if (action === "complete-home") { resetCompletedOrder(); state.screen = "home"; state.history = []; render(); }
   if (action === "announcement-dot") showAnnouncement(Number(id));
-  if (action === "store") { state.orderType = "pickup"; go("store"); }
-  if (action === "delivery") { state.orderType = "delivery"; go("delivery"); }
+  if (action === "store") { state.cartItems = []; state.orderType = "pickup"; go("store"); }
+  if (action === "delivery") { state.cartItems = []; state.orderType = "delivery"; go("delivery"); }
   if (action === "start-delivery") {
     showLoadingOverlay(() => {
       state.orderType = "delivery";
@@ -547,8 +557,8 @@ app.addEventListener("click", (event) => {
     state.expandedOptionGroupId = null;
     render();
   }
-  if (action === "add-cart") addSelectedItemToCart();
-  if (action === "checkout") go("cart");
+  if (action === "add-cart") showLoadingOverlay(addSelectedItemToCart);
+  if (action === "checkout") showLoadingOverlay(() => go("cart"));
   if (action === "cart-minus") {
     const index = Number(button.dataset.index);
     if (state.cartItems[index] && window.confirm("商品の個数を減らしますか？")) {
@@ -569,9 +579,10 @@ app.addEventListener("click", (event) => {
       render();
     }
   }
-  if (action === "payment-screen") go("payment");
+  if (action === "payment-screen") showLoadingOverlay(() => go("payment"));
   if (action === "payment") { state.selectedPayment = id; render(); }
   if (action === "final") go("final");
+  if (action === "cart") returnToCart();
   if (action === "complete") go("complete");
   if (action === "minus" && state.quantity > 1) { state.quantity -= 1; render(); }
   if (action === "plus") { state.quantity += 1; render(); }
