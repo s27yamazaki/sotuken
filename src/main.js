@@ -149,20 +149,15 @@ function homeScreen() {
   '</main>' + bottomNav("home");
 }
 
-function mapArea() {
-  let pins = "";
-  for (let i = 0; i < 10; i += 1) {
-    pins += '<span class="map-pin" style="left:' + (8 + (i * 17) % 82) + '%;top:' + (12 + (i * 23) % 66) + '%">M</span>';
-  }
-  return '<div class="map-area">' + pins + '<span class="current-location"></span></div>';
-}
-
 function storeCard(store, options = {}) {
   const tag = options.static ? "div" : "button";
   const attrs = options.static ? "" : ' data-action="select-store" data-id="' + store.id + '"';
+  const note = store.note ? '<span class="pill">' + store.note + '</span>' : '';
+  const name = store.name ? '<strong>' + store.name + '</strong>' : '';
+  const distance = store.distance ? '<span>' + store.distance + '</span>' : '';
+  const address = store.address ? '<div class="store-detail"><p>' + store.address + '</p></div>' : '';
   return '<' + tag + ' class="store-card"' + attrs + '>' +
-    '<div class="store-heading"><span class="pill">' + store.note + '</span><strong>' + store.name + '</strong><span>' + store.distance + '</span></div>' +
-    '<div class="store-detail"><img src="./assets/images/no-image.jpg" alt="画像未設定" class="store-photo-image" /><div><p>' + store.address + '</p><small>駅近く、客席1階のみ</small></div></div>' +
+    '<div class="store-heading">' + note + name + distance + '</div>' + address +
   '</' + tag + '>';
 }
 
@@ -184,7 +179,7 @@ function productCard(item) {
   const attrs = item.hasDetail && !item.disabled ? ' data-action="select-item" data-id="' + item.id + '"' : '';
   return '<' + tag + ' class="product-card ' + (item.disabled ? 'is-disabled' : '') + '"' + attrs + '>' +
     (item.badge && !item.disabled ? '<span class="badge">' + item.badge + '</span>' : '') +
-    '<div class="product-image-placeholder" aria-hidden="true"></div>' +
+    '<img class="product-card-image" src="' + item.image + '" alt="' + item.name + '" />' +
     '<strong>' + item.name + '</strong><span class="price">' + yen(item.price) + '</span>' +
 
     (item.disabled ? '<span class="soldout">販売していません</span>' : '') +
@@ -236,8 +231,8 @@ function optionSections() {
 function detailScreen() {
   const item = selectedItem();
   return topBar(item.name, { back: true }) +
-    '<section class="detail-hero"><img src="./assets/images/no-image.jpg" alt="画像未設定" class="detail-hero-image" /></section>' +
-    '<section class="detail-notes"><p>※一部店舗及びデリバリーでは価格が異なります。</p></section>' +
+    '<section class="detail-hero"><img src="' + item.image + '" alt="' + item.name + '" class="detail-hero-image" /></section>' +
+    '<section class="detail-notes"><p>' + (item.description || '※一部店舗及びデリバリーでは価格が異なります。') + '</p></section>' +
     '<section class="detail-list">' + detailComponentRows(item) + '</section>' +
     optionSections() +
     orderBar("カートに追加", "add-cart", !optionsComplete());
@@ -270,7 +265,7 @@ function finalScreen() {
   return topBar("注文内容の最終確認", { back: true }) +
     '<section class="confirm-actions"><button class="primary" data-action="complete">注文を確定</button><button class="outline" data-action="cart">注文をキャンセル</button></section>' +
     '<section class="section-block"><h2>支払い方法</h2><p><strong>' + state.selectedPayment + '</strong></p></section>' +
-    '<section class="section-block"><h2>受け取り予定の店舗</h2>' + storeCard(selectedStore(), { static: true }) + mapArea() + '</section>' + cartSummary();
+    '<section class="section-block"><h2>受け取り予定の店舗</h2>' + storeCard(selectedStore(), { static: true }) + '</section>' + cartSummary();
 }
 
 function completeScreen() {

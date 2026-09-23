@@ -93,21 +93,43 @@
 .home-page {
   min-height: calc(100vh - 82px);
   padding: 28px 18px 44px;
-  background: #fff;
+  background-color: #fffdfa;
+  background-image:
+    radial-gradient(circle at 14% 22%, rgba(197, 140, 105, 0.065) 0 2%, transparent 8%),
+    radial-gradient(circle at 82% 64%, rgba(120, 96, 82, 0.05) 0 2%, transparent 9%),
+    repeating-linear-gradient(94deg, transparent 0 22px, rgba(143, 112, 94, 0.025) 23px 24px, transparent 25px 46px),
+    repeating-linear-gradient(2deg, transparent 0 36px, rgba(213, 177, 151, 0.025) 37px 38px, transparent 39px 68px);
 }
 
 .home-brand {
-  padding: 20px 0 30px;
-  border-bottom: 1px solid #ddd;
+  margin: -28px -18px 0;
+  padding: 34px 18px;
+  border-bottom: 0;
+  background-color: #df5f38;
+  background-image:
+    radial-gradient(circle at 18% 34%, rgba(255, 255, 255, 0.13) 0 2%, transparent 8%),
+    radial-gradient(circle at 76% 68%, rgba(116, 47, 25, 0.12) 0 3%, transparent 10%),
+    radial-gradient(circle at 48% 18%, rgba(255, 226, 208, 0.09) 0 1%, transparent 6%),
+    repeating-linear-gradient(96deg, transparent 0 14px, rgba(255, 255, 255, 0.055) 15px 17px, transparent 18px 34px),
+    repeating-linear-gradient(3deg, transparent 0 30px, rgba(105, 42, 23, 0.035) 31px 32px, transparent 33px 58px);
   text-align: center;
 }
 
 .home-brand h1 {
   margin: 0;
-  color: #242424;
+  color: #fff;
+  background-color: #fff;
+  background-image:
+    radial-gradient(circle at 24% 42%, rgba(180, 87, 55, 0.42) 0 1px, transparent 2px),
+    radial-gradient(circle at 68% 66%, rgba(180, 87, 55, 0.3) 0 1px, transparent 3px),
+    repeating-linear-gradient(94deg, #fff 0 7px, #f3e5df 8px 9px, #fff 10px 18px);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   font-size: 34px;
   font-weight: 900;
   letter-spacing: 0;
+  text-shadow: 0 1px 0 rgba(118, 42, 20, 0.12);
 }
 
 .home-order-section,
@@ -146,7 +168,10 @@
   border: 1px solid #ddd;
   border-left-width: 6px;
   border-radius: 8px;
-  background: #fff;
+  background-color: #fff;
+  background-image:
+    radial-gradient(circle at 20% 35%, rgba(203, 143, 108, 0.07) 0 2%, transparent 9%),
+    repeating-linear-gradient(95deg, transparent 0 18px, rgba(132, 102, 84, 0.025) 19px 20px, transparent 21px 38px);
   color: #222;
   text-align: left;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -272,47 +297,6 @@
   font-weight: 700;
 }
 
-.map-area {
-  position: relative;
-  height: 330px;
-  overflow: hidden;
-  background:
-    linear-gradient(30deg, transparent 46%, #aec1df 47% 49%, transparent 50%),
-    linear-gradient(115deg, transparent 45%, #c6d7ea 46% 49%, transparent 50%),
-    linear-gradient(#eef4ed 0 0),
-    repeating-linear-gradient(90deg, #fff 0 28px, #eef0f0 29px 31px);
-}
-
-.map-pin {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 42px;
-  border-radius: 18px 18px 18px 4px;
-  transform: rotate(-45deg);
-  background: #d80013;
-  color: #ffbc0d;
-  font-weight: 900;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
-}
-
-.map-pin::first-letter {
-  transform: rotate(45deg);
-}
-
-.current-location {
-  position: absolute;
-  right: 36%;
-  top: 42%;
-  width: 28px;
-  height: 28px;
-  border: 5px solid #fff;
-  border-radius: 50%;
-  background: #1287ff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
-}
-
 .store-sheet {
   padding: 18px;
   background: #f6f6f6;
@@ -392,15 +376,6 @@
   margin: 0 0 8px;
   color: #444;
   font-weight: 700;
-}
-
-.store-detail small {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: #eee;
-  color: #555;
-  font-weight: 800;
 }
 
 .category-tabs {
@@ -973,14 +948,17 @@
   }
 }
 
-.product-card .product-image-placeholder {
+.product-card-image {
   width: 88px;
   height: 78px;
   margin: 0;
+  border-radius: 6px;
+  object-fit: cover;
+  display: block;
 }
 
 @media (max-width: 360px) {
-  .product-card .product-image-placeholder {
+  .product-card-image {
     width: 72px;
     height: 68px;
   }
@@ -1004,8 +982,9 @@
   font-weight: 900;
 }
 .detail-hero-image {
-  width: min(72%, 260px);
-  height: auto;
+  width: min(88%, 360px);
+  max-height: 300px;
+  object-fit: contain;
   display: block;
 }
 .detail-row-image {
