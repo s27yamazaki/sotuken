@@ -5,8 +5,14 @@ import { homeConfig } from "./config/menu-config.js";
 const app = document.querySelector("#app");
 const announcementInterval = 4500;
 const deliveryFee = 300;
+const loadingDuration = 250;
+const screenTransitionDuration = 250;
 let announcementTimer = null;
 let announcementScrollTimer = null;
+let loadingTimer = null;
+let isLoading = false;
+let screenTransitionTimer = null;
+let isScreenTransitioning = false;
 
 const state = {
   screen: "home",
@@ -133,6 +139,69 @@ function go(screen) {
 function back() {
   state.screen = state.history.pop() || "home";
   render();
+}
+
+function screenScrollPosition(screen) {
+  if (screen === "menu") return state.menuScrollY;
+  if (screen === "detail") return state.detailScrollY;
+  return 0;
+}
+
+function runScreenTransition(targetScreen, direction, updateHistory) {
+  if (isScreenTransitioning || isLoading) return;
+  const currentShell = app.querySelector(".phone-shell");
+  if (!currentShell) return;
+  const outgoingMarkup = currentShell.outerHTML;
+  const outgoingScrollY = window.scrollY;
+  if (updateHistory === "push") state.history.push(state.screen);
+  if (updateHistory === "pop") state.history.pop();
+  state.screen = targetScreen;
+  const incomingMarkup = '<div class="phone-shell">' + renderScreen() + '</div>';
+  const incomingScrollY = screenScrollPosition(targetScreen);
+  isScreenTransitioning = true;
+  app.insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '" style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
+  const transition = app.querySelector(".screen-transition");
+  const outgoingPanel = transition.querySelector(".screen-transition-outgoing");
+  const incomingPanel = transition.querySelector(".screen-transition-incoming");
+  outgoingPanel.scrollTop = outgoingScrollY;
+  incomingPanel.scrollTop = incomingScrollY;
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => transition.classList.add("is-running"));
+  });
+  let finished = false;
+  const finishTransition = () => {
+    if (finished) return;
+    finished = true;
+    if (screenTransitionTimer) window.clearTimeout(screenTransitionTimer);
+    screenTransitionTimer = null;
+    isScreenTransitioning = false;
+    render();
+  };
+  incomingPanel.addEventListener("transitionend", finishTransition, { once: true });
+  screenTransitionTimer = window.setTimeout(finishTransition, screenTransitionDuration + 80);
+}
+
+function goWithScreenTransition(screen, direction = "forward") {
+  runScreenTransition(screen, direction, "push");
+}
+
+function backWithScreenTransition(direction = "back") {
+  const targetScreen = state.history[state.history.length - 1] || "home";
+  runScreenTransition(targetScreen, direction, "pop");
+}
+
+function showLoadingOverlay(onComplete) {
+  if (isLoading) return;
+  const phoneShell = app.querySelector(".phone-shell");
+  if (!phoneShell) return;
+  isLoading = true;
+  phoneShell.setAttribute("aria-busy", "true");
+  phoneShell.insertAdjacentHTML("beforeend", '<div class="loading-overlay" role="status" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><span>読み込み中</span></div>');
+  loadingTimer = window.setTimeout(() => {
+    isLoading = false;
+    loadingTimer = null;
+    onComplete();
+  }, loadingDuration);
 }
 
 function topBar(title, options = {}) {
@@ -423,18 +492,35 @@ function render() {
 }
 
 app.addEventListener("click", (event) => {
+  if (isLoading || isScreenTransitioning) return;
   const button = event.target.closest("button");
   if (!button || button.disabled) return;
   const action = button.dataset.action;
   const id = button.dataset.id;
-  if (action === "back") back();
+  if (action === "back") {
+    if (state.screen === "detail" && state.history[state.history.length - 1] === "menu") backWithScreenTransition();
+    else back();
+  }
   if (action === "home") { state.screen = "home"; state.history = []; render(); }
   if (action === "complete-home") { resetCompletedOrder(); state.screen = "home"; state.history = []; render(); }
   if (action === "announcement-dot") showAnnouncement(Number(id));
   if (action === "store") { state.orderType = "pickup"; go("store"); }
   if (action === "delivery") { state.orderType = "delivery"; go("delivery"); }
-  if (action === "start-delivery") { state.orderType = "delivery"; state.history = ["home"]; state.screen = "menu"; render(); }
-  if (action === "select-store") { state.orderType = "pickup"; state.selectedStoreId = id; go("menu"); }
+  if (action === "start-delivery") {
+    showLoadingOverlay(() => {
+      state.orderType = "delivery";
+      state.history = ["home"];
+      state.screen = "menu";
+      render();
+    });
+  }
+  if (action === "select-store") {
+    showLoadingOverlay(() => {
+      state.orderType = "pickup";
+      state.selectedStoreId = id;
+      go("menu");
+    });
+  }
   if (action === "category") {
     const categoryTabsElement = button.closest(".category-tabs");
     state.categoryScrollLeft = categoryTabsElement ? categoryTabsElement.scrollLeft : state.categoryScrollLeft;
@@ -448,7 +534,7 @@ app.addEventListener("click", (event) => {
     state.selectedOptions = defaultOptionsForItem(selectedItem());
     state.expandedOptionGroupId = null;
     state.detailScrollY = 0;
-    go("detail");
+    goWithScreenTransition("detail");
   }
   if (action === "toggle-option") {
     state.detailScrollY = window.scrollY;
@@ -492,6 +578,7 @@ app.addEventListener("click", (event) => {
 });
 
 app.addEventListener("input", (event) => {
+  if (isLoading || isScreenTransitioning) return;
   if (event.target.name === "delivery-address") state.deliveryAddress = event.target.value;
   if (event.target.dataset.phoneIndex !== undefined) {
     const index = Number(event.target.dataset.phoneIndex);
