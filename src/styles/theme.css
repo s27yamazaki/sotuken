@@ -301,7 +301,13 @@
   font-weight: 700;
 }
 
-.product-grid,
+.product-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 0 18px 24px;
+}
+
 .payment-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -309,7 +315,20 @@
   padding: 0 18px 24px;
 }
 
-.product-card,
+.product-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 14px;
+  width: 100%;
+  min-height: 108px;
+  padding: 14px;
+  border: 0;
+  color: #2b2b2b;
+  text-align: left;
+}
+
 .payment-card {
   position: relative;
   min-height: 224px;
@@ -320,7 +339,13 @@
   text-align: left;
 }
 
-.product-card strong,
+.product-card strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
 .payment-card strong {
   display: block;
   font-size: 18px;
@@ -328,20 +353,12 @@
   line-height: 1.35;
 }
 
-.product-card strong {
-  display: -webkit-box;
-  min-height: calc(2em * 1.35);
-  max-height: calc(2em * 1.35);
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
 .price {
   display: block;
-  margin-top: 12px;
-  font-size: 28px;
+  margin: 0;
+  font-size: 22px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .badge {
@@ -783,14 +800,33 @@
 }
 
 @media (max-width: 360px) {
-  .product-grid,
+  .product-grid {
+    gap: 10px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
   .payment-grid {
     gap: 10px;
     padding-right: 12px;
     padding-left: 12px;
   }
 
-  .product-card strong,
+  .product-card {
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    column-gap: 10px;
+    min-height: 96px;
+    padding: 12px;
+  }
+
+  .product-card strong {
+    font-size: 16px;
+  }
+
+  .product-card .price {
+    font-size: 19px;
+  }
+
   .payment-card strong {
     font-size: 16px;
   }
@@ -800,9 +836,17 @@
   }
 }
 
-.product-image-placeholder {
-  height: 92px;
-  margin-bottom: 12px;
+.product-card .product-image-placeholder {
+  width: 88px;
+  height: 78px;
+  margin: 0;
+}
+
+@media (max-width: 360px) {
+  .product-card .product-image-placeholder {
+    width: 72px;
+    height: 68px;
+  }
 }
 
 .not-linked {
