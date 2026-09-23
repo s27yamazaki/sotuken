@@ -664,6 +664,59 @@
   padding: 20px 18px;
 }
 
+.delivery-fields {
+  display: grid;
+  gap: 16px;
+  padding: 20px 18px;
+  border-top: 1px solid #e5e5e5;
+  background: #fff;
+}
+
+.delivery-fields h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.delivery-notice {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.delivery-fields label,
+.delivery-phone-field {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.delivery-fields input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  background: #fff;
+  color: #222;
+  font: inherit;
+}
+
+.delivery-phone-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) auto minmax(0, 4fr) auto minmax(0, 4fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.delivery-phone-inputs input {
+  min-width: 0;
+  padding-right: 6px;
+  padding-left: 6px;
+  text-align: center;
+}
+
 .choice-preview h2,
 .choice-section h2,
 .section-block h2,

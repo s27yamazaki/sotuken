@@ -7,6 +7,7 @@ const app = document.querySelector("#app");
 const state = {
   screen: "home",
   history: [],
+  orderType: "pickup",
   selectedStoreId: storeConfig.selectedStoreId,
   selectedCategoryId: "recommended",
   categoryScrollLeft: 0,
@@ -16,6 +17,8 @@ const state = {
   selectedOptions: {},
   expandedOptionGroupId: null,
   selectedPayment: null,
+  deliveryAddress: "",
+  deliveryPhoneParts: ["", "", ""],
   quantity: 1,
   cartItems: [],
 };
@@ -74,6 +77,18 @@ function cartItemCount() {
 
 function cartTotalPrice() {
   return state.cartItems.reduce((total, cartItem) => total + cartItem.unitPrice * cartItem.quantity, 0);
+}
+
+function resetCompletedOrder() {
+  state.cartItems = [];
+  state.quantity = 1;
+  state.selectedOptions = {};
+  state.expandedOptionGroupId = null;
+  state.selectedPayment = null;
+  state.deliveryAddress = "";
+  state.deliveryPhoneParts = ["", "", ""];
+  state.menuScrollY = 0;
+  state.detailScrollY = 0;
 }
 
 function addSelectedItemToCart() {
@@ -187,15 +202,13 @@ function productCard(item) {
 }
 
 
-function deliveryScreen() {
-  return topBar("デリバリー", {}) + '<section class="blank-screen"></section>' + bottomNav("delivery");
-}
 function menuScreen() {
   const visibleItems = menuConfig.items.filter((item) => {
     if (state.selectedCategoryId === "recommended") return item.recommended;
     return item.category === state.selectedCategoryId;
   });
-  return topBar(selectedStore().name + "で受け取り", { back: true }) +
+  const title = state.orderType === "delivery" ? "デリバリー" : selectedStore().name + "で受け取り";
+  return topBar(title, { back: true }) +
     categoryTabs() +
     '<p class="note">※特定店舗の価格が適用されます。</p>' +
     '<section class="product-grid">' + visibleItems.map(productCard).join("") + '</section>' + checkoutBar();
@@ -248,10 +261,17 @@ function cartSummary() {
 }
 
 function cartScreen() {
+  const isDelivery = state.orderType === "delivery";
+  const storeSection = isDelivery ? "" : '<section class="section-block"><h2>受け取り予定の店舗</h2>' + storeCard(selectedStore(), { static: true }) + '</section>';
+  const deliveryFields = isDelivery
+    ? '<section class="delivery-fields"><h2>配達先情報</h2><p class="delivery-notice">※実験用のため、実際の住所・電話番号は入力しないでください。</p><label>住所<input type="text" name="delivery-address" value="' + state.deliveryAddress + '" autocomplete="street-address" /></label><div class="delivery-phone-field"><span>電話番号</span><div class="delivery-phone-inputs"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" data-phone-index="0" value="' + state.deliveryPhoneParts[0] + '" aria-label="電話番号1" autocomplete="tel-area-code" /><span aria-hidden="true">-</span><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" data-phone-index="1" value="' + state.deliveryPhoneParts[1] + '" aria-label="電話番号2" autocomplete="tel-local-prefix" /><span aria-hidden="true">-</span><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" data-phone-index="2" value="' + state.deliveryPhoneParts[2] + '" aria-label="電話番号3" autocomplete="tel-local-suffix" /></div></div></section>'
+    : "";
+  const paymentDisabled = isDelivery && (!state.deliveryAddress.trim() || state.deliveryPhoneParts.some((part) => !part));
   return topBar("ご注文内容の確認", { back: true }) +
-    '<section class="section-block"><h2>受け取り予定の店舗</h2>' + storeCard(selectedStore(), { static: true }) + '</section>' +
+    storeSection +
     cartSummary() +
-    '<section class="bottom-action"><button class="primary" data-action="payment-screen">支払い方法を選択</button></section>';
+    deliveryFields +
+    '<section class="bottom-action"><button class="primary" data-action="payment-screen" ' + (paymentDisabled ? 'disabled' : '') + '>支払い方法を選択</button></section>';
 }
 
 function paymentScreen() {
@@ -262,21 +282,21 @@ function paymentScreen() {
 }
 
 function finalScreen() {
+  const storeHeading = state.orderType === "delivery" ? "配達予定の店舗" : "受け取り予定の店舗";
   return topBar("注文内容の最終確認", { back: true }) +
     '<section class="confirm-actions"><button class="primary" data-action="complete">注文を確定</button><button class="outline" data-action="cart">注文をキャンセル</button></section>' +
     '<section class="section-block"><h2>支払い方法</h2><p><strong>' + state.selectedPayment + '</strong></p></section>' +
-    '<section class="section-block"><h2>受け取り予定の店舗</h2>' + storeCard(selectedStore(), { static: true }) + '</section>' + cartSummary();
+    '<section class="section-block"><h2>' + storeHeading + '</h2>' + storeCard(selectedStore(), { static: true }) + '</section>' + cartSummary();
 }
 
 function completeScreen() {
   return topBar("注文完了", {}) +
-    '<section class="complete"><strong>注文が完了しました</strong><p>これは研究用シミュレータのため、実際の注文は行われません。</p><p class="order-number">A-001</p><button class="primary" data-action="home">ホームへ戻る</button></section>';
+    '<section class="complete"><strong>注文が完了しました</strong><p>これは研究用シミュレータのため、実際の注文は行われません。</p><p class="order-number">A-001</p><button class="primary" data-action="complete-home">ホームへ戻る</button></section>';
 }
 
 function renderScreen() {
   if (state.screen === "home") return homeScreen();
   if (state.screen === "store") return storeScreen();
-  if (state.screen === "delivery") return deliveryScreen();
   if (state.screen === "menu") return menuScreen();
   if (state.screen === "detail") return detailScreen();
   if (state.screen === "cart") return cartScreen();
@@ -318,9 +338,10 @@ app.addEventListener("click", (event) => {
   const id = button.dataset.id;
   if (action === "back") back();
   if (action === "home") { state.screen = "home"; state.history = []; render(); }
-  if (action === "store") go("store");
-  if (action === "delivery") go("delivery");
-  if (action === "select-store") { state.selectedStoreId = id; go("menu"); }
+  if (action === "complete-home") { resetCompletedOrder(); state.screen = "home"; state.history = []; render(); }
+  if (action === "store") { state.orderType = "pickup"; go("store"); }
+  if (action === "delivery") { state.orderType = "delivery"; go("menu"); }
+  if (action === "select-store") { state.orderType = "pickup"; state.selectedStoreId = id; go("menu"); }
   if (action === "category") {
     const categoryTabsElement = button.closest(".category-tabs");
     state.categoryScrollLeft = categoryTabsElement ? categoryTabsElement.scrollLeft : state.categoryScrollLeft;
@@ -375,6 +396,25 @@ app.addEventListener("click", (event) => {
   if (action === "complete") go("complete");
   if (action === "minus" && state.quantity > 1) { state.quantity -= 1; render(); }
   if (action === "plus") { state.quantity += 1; render(); }
+});
+
+app.addEventListener("input", (event) => {
+  if (event.target.name === "delivery-address") state.deliveryAddress = event.target.value;
+  if (event.target.dataset.phoneIndex !== undefined) {
+    const index = Number(event.target.dataset.phoneIndex);
+    const maxLength = index === 0 ? 3 : 4;
+    const digits = event.target.value.replace(/\D/g, "").slice(0, maxLength);
+    event.target.value = digits;
+    state.deliveryPhoneParts[index] = digits;
+    if (digits.length === maxLength && index < state.deliveryPhoneParts.length - 1) {
+      const nextInput = app.querySelector('[data-phone-index="' + (index + 1) + '"]');
+      if (nextInput) nextInput.focus();
+    }
+  }
+  const paymentButton = app.querySelector('[data-action="payment-screen"]');
+  if (paymentButton && state.orderType === "delivery") {
+    paymentButton.disabled = !state.deliveryAddress.trim() || state.deliveryPhoneParts.some((part) => !part);
+  }
 });
 
 render();
