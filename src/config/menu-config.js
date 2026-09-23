@@ -35,6 +35,29 @@
 export const homeConfig = {
   storeName: "キッチンコロッケ",
   businessHours: "10:00 ～ 20:00",
+  announcements: [
+    {
+      id: "monthly-recommendation",
+      title: "今月のお得情報",
+      label: "期間限定",
+      subtitle: "からあげ弁当のからあげを1個増量中！",
+      image: "",
+    },
+    {
+      id: "new-product",
+      title: "冷凍コロッケ 通信販売スタート",
+      label: "販売開始",
+      subtitle: "キッチンコロッケの味をご自宅でも楽しめます",
+      image: "",
+    },
+    {
+      id: "limited-menu",
+      title: "宴会用オードブル承ります",
+      label: "ご予約受付中",
+      subtitle: "内容やご予算など、詳しくは店頭スタッフへお尋ねください",
+      image: "",
+    },
+  ],
   socialLinks: {
     instagram: "https://www.instagram.com/ota_croquette/",
     facebook: "https://www.facebook.com/kitchenkorokke/",

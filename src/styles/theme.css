@@ -132,6 +132,144 @@
   text-shadow: 0 1px 0 rgba(118, 42, 20, 0.12);
 }
 
+.home-announcement-section {
+  padding: 24px 0 8px;
+}
+
+.home-announcement-section h2 {
+  margin: 0 0 14px;
+  color: #333;
+  font-size: 19px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.announcement-track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+  touch-action: pan-x pan-y;
+}
+
+.announcement-track::-webkit-scrollbar {
+  display: none;
+}
+
+.announcement-banner {
+  position: relative;
+  display: grid;
+  flex: 0 0 100%;
+  min-height: 174px;
+  padding: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(105, 73, 55, 0.18);
+  border-radius: 8px;
+  color: #29211d;
+  scroll-snap-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.announcement-banner-1 {
+  background: #f3c56f;
+}
+
+.announcement-banner-2 {
+  background: #b9d5b1;
+}
+
+.announcement-banner-3 {
+  background: #e5b6a5;
+}
+
+.announcement-banner::after {
+  position: absolute;
+  inset: 35% 0 0;
+  content: "";
+  background: linear-gradient(transparent, rgba(255, 253, 250, 0.68));
+}
+
+.announcement-banner img,
+.announcement-placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.announcement-placeholder {
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.34) 0 2%, transparent 10%),
+    repeating-linear-gradient(96deg, transparent 0 18px, rgba(106, 69, 48, 0.045) 19px 20px, transparent 21px 40px);
+}
+
+.announcement-banner div {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  max-width: 90%;
+}
+
+.announcement-banner strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.announcement-banner p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.announcement-label {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #df5f38;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.announcement-banner-2 .announcement-label {
+  background: #287a39;
+}
+
+.announcement-banner-3 .announcement-label {
+  background: #9d3c58;
+}
+
+.announcement-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  min-height: 28px;
+  padding-top: 12px;
+}
+
+.announcement-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #c8c1bc;
+}
+
+.announcement-dot.is-active {
+  background: #df5f38;
+  transform: scale(1.2);
+}
+
 .home-order-section,
 .home-info-section,
 .home-social-section {
@@ -244,7 +382,18 @@
 }
 
 .social-instagram {
-  background: #c13584;
+  box-sizing: border-box;
+  padding: 3px;
+  overflow: hidden;
+  background: #34363d;
+}
+
+.social-instagram img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .social-facebook {
@@ -275,17 +424,35 @@
   font-weight: 800;
 }
 
-.nav-item span {
+.nav-item-symbol,
+.nav-item-image {
   display: block;
+  width: 32px;
+  height: 32px;
+  margin-right: auto;
   margin-bottom: 4px;
+  margin-left: auto;
+}
+
+.nav-item-symbol {
   color: #999;
   font-size: 30px;
   font-weight: 900;
+  line-height: 32px;
+}
+
+.nav-item-image {
+  object-fit: contain;
+  opacity: 0.58;
 }
 
 .nav-item.is-active,
-.nav-item.is-active span {
+.nav-item.is-active .nav-item-symbol {
   color: #ffbc0d;
+}
+
+.nav-item.is-active .nav-item-image {
+  opacity: 1;
 }
 
 .sub-title {
@@ -1028,6 +1195,34 @@
   min-height: calc(100vh - 66px);
   background: #fff;
 }
+
+.delivery-start-screen {
+  min-height: calc(100vh - 148px);
+  padding: 54px 24px 32px;
+  background: #fff;
+  text-align: center;
+}
+
+.delivery-start-screen h2 {
+  margin: 0 0 28px;
+  color: #242424;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.delivery-start-screen p {
+  margin: 0 auto 16px;
+  max-width: 340px;
+  color: #444;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.75;
+}
+
+.delivery-start-screen .primary {
+  width: 100%;
+  margin-top: 26px;
+}
 .store-list-title {
   margin: 0 0 14px;
   color: #242424;
@@ -1199,6 +1394,21 @@
   font-size: 20px;
   font-weight: 900;
   line-height: 1;
+}
+
+.cart-summary-fee {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 18px 0;
+  border-bottom: 1px solid #e7e7e7;
+  color: #242424;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.cart-summary-fee strong {
+  font-size: 22px;
 }
 
 .cart-summary-total {

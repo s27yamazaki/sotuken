@@ -3,6 +3,10 @@
 import { homeConfig } from "./config/menu-config.js";
 
 const app = document.querySelector("#app");
+const announcementInterval = 4500;
+const deliveryFee = 300;
+let announcementTimer = null;
+let announcementScrollTimer = null;
 
 const state = {
   screen: "home",
@@ -19,6 +23,7 @@ const state = {
   selectedPayment: null,
   deliveryAddress: "",
   deliveryPhoneParts: ["", "", ""],
+  announcementIndex: 0,
   quantity: 1,
   cartItems: [],
 };
@@ -77,6 +82,10 @@ function cartItemCount() {
 
 function cartTotalPrice() {
   return state.cartItems.reduce((total, cartItem) => total + cartItem.unitPrice * cartItem.quantity, 0);
+}
+
+function orderTotalPrice() {
+  return cartTotalPrice() + (state.orderType === "delivery" ? deliveryFee : 0);
 }
 
 function resetCompletedOrder() {
@@ -141,24 +150,42 @@ function visual(type) {
 function bottomNav(active) {
   const items = [
     ["home", "ホーム", "⌂", "home"],
-    ["delivery", "デリバリー", "▱", "delivery"],
-    ["order", "オーダー", "M", "store"],
+    ["delivery", "デリバリー", "./assets/images/delivery-icon.png", "delivery"],
+    ["order", "オーダー", "./assets/images/order-icon.png", "store"],
   ];
   return '<nav class="bottom-nav">' + items.map((item) => {
-    return '<button class="nav-item ' + (active === item[0] ? 'is-active' : '') + '" data-action="' + item[3] + '"><span>' + item[2] + '</span>' + item[1] + '</button>';
+    const icon = item[2].startsWith("./")
+      ? '<img class="nav-item-image" src="' + item[2] + '" alt="" aria-hidden="true" />'
+      : '<span class="nav-item-symbol" aria-hidden="true">' + item[2] + '</span>';
+    return '<button class="nav-item ' + (active === item[0] ? 'is-active' : '') + '" data-action="' + item[3] + '">' + icon + item[1] + '</button>';
   }).join("") + '</nav>';
+}
+
+function announcementCarousel() {
+  const announcements = homeConfig.announcements || [];
+  if (announcements.length === 0) return "";
+  const banners = announcements.map((announcement, index) => {
+    const image = announcement.image
+      ? '<img src="' + announcement.image + '" alt="" />'
+      : '<span class="announcement-placeholder" aria-hidden="true"></span>';
+    const label = announcement.label ? '<span class="announcement-label">' + announcement.label + '</span>' : '';
+    return '<article class="announcement-banner announcement-banner-' + ((index % 3) + 1) + '">' + image + '<div>' + label + '<strong>' + announcement.title + '</strong><p>' + announcement.subtitle + '</p></div></article>';
+  }).join("");
+  const dots = announcements.map((announcement, index) => '<button class="announcement-dot ' + (index === state.announcementIndex ? 'is-active' : '') + '" data-action="announcement-dot" data-id="' + index + '" aria-label="' + (index + 1) + '件目のお知らせを表示" aria-current="' + (index === state.announcementIndex ? 'true' : 'false') + '"></button>').join("");
+  return '<section class="home-announcement-section" aria-label="店舗からのお知らせ"><h2>店舗からのお知らせ</h2><div class="announcement-track">' + banners + '</div><div class="announcement-dots">' + dots + '</div></section>';
 }
 
 function homeScreen() {
   return '<main class="home-page">' +
     '<header class="home-brand"><h1>' + homeConfig.storeName + '</h1></header>' +
+    announcementCarousel() +
     '<section class="home-order-section"><h2>ご注文はこちら</h2><div class="home-order-list">' +
       '<button class="home-order-card is-order" data-action="store"><span><strong>オーダー</strong><small>店頭で受け取る</small></span><span class="home-card-arrow" aria-hidden="true">›</span></button>' +
       '<button class="home-order-card is-delivery" data-action="delivery"><span><strong>デリバリー</strong><small>ご指定先へお届け</small></span><span class="home-card-arrow" aria-hidden="true">›</span></button>' +
     '</div></section>' +
     '<section class="home-info-section"><h2>営業時間</h2><p>' + homeConfig.businessHours + '</p></section>' +
     '<section class="home-social-section"><h2>公式SNS</h2><div class="home-social-links">' +
-      '<a href="' + homeConfig.socialLinks.instagram + '" target="_blank" rel="noopener noreferrer" aria-label="Instagramを新しいタブで開く"><span class="social-icon social-instagram" aria-hidden="true">IG</span><span>Instagram</span></a>' +
+      '<a href="' + homeConfig.socialLinks.instagram + '" target="_blank" rel="noopener noreferrer" aria-label="Instagramを新しいタブで開く"><span class="social-icon social-instagram" aria-hidden="true"><img src="./assets/images/instagram-profile.png" alt="" /></span><span>Instagram</span></a>' +
       '<a href="' + homeConfig.socialLinks.facebook + '" target="_blank" rel="noopener noreferrer" aria-label="Facebookを新しいタブで開く"><span class="social-icon social-facebook" aria-hidden="true">f</span><span>Facebook</span></a>' +
     '</div></section>' +
   '</main>' + bottomNav("home");
@@ -167,7 +194,7 @@ function homeScreen() {
 function storeCard(store, options = {}) {
   const tag = options.static ? "div" : "button";
   const attrs = options.static ? "" : ' data-action="select-store" data-id="' + store.id + '"';
-  const note = store.note ? '<span class="pill">' + store.note + '</span>' : '';
+  const note = store.note && !options.hideNote ? '<span class="pill">' + store.note + '</span>' : '';
   const name = store.name ? '<strong>' + store.name + '</strong>' : '';
   const distance = store.distance ? '<span>' + store.distance + '</span>' : '';
   const address = store.address ? '<div class="store-detail"><p>' + store.address + '</p></div>' : '';
@@ -181,6 +208,12 @@ function storeScreen() {
     '<p class="sub-title">ご利用の店舗を選択してください</p>' +
     '<section class="store-sheet"><h2 class="store-list-title">店舗一覧</h2>' + storeConfig.stores.map(storeCard).join("") + '</section>' +
     bottomNav("order");
+}
+
+function deliveryScreen() {
+  return topBar("デリバリー", {}) +
+    '<main class="delivery-start-screen"><h2>デリバリー注文</h2><p>配達料金が加算されます。</p><p>配達対象外の住所が入力された際は、ご注文をキャンセルさせていただきます。</p><button class="primary" data-action="start-delivery">注文開始</button></main>' +
+    bottomNav("delivery");
 }
 
 function categoryTabs() {
@@ -257,12 +290,13 @@ function cartSummary() {
     const optionLines = (cartItem.options || []).map((option) => '<p>' + option.groupLabel + '：' + option.choiceLabel + (option.priceDelta > 0 ? '（＋' + yen(option.priceDelta) + '）' : '') + '</p>').join("");
     return '<div class="cart-summary-item"><div class="cart-summary-main"><strong>' + cartItem.item.name + '</strong>' + componentLines + optionLines + '<span class="cart-summary-price">' + yen(cartItem.unitPrice) + '</span></div><div class="cart-summary-quantity"><button data-action="cart-minus" data-index="' + index + '">−</button><span>' + cartItem.quantity + '</span><button data-action="cart-plus" data-index="' + index + '">＋</button></div></div>';
   }).join("");
-  return '<section class="cart-summary"><h2>ご注文内容</h2>' + itemRows + '<div class="cart-summary-total"><span>合計</span><strong>' + yen(cartTotalPrice()) + '</strong></div></section>';
+  const deliveryFeeRow = state.orderType === "delivery" ? '<div class="cart-summary-fee"><span>配達料</span><strong>' + yen(deliveryFee) + '</strong></div>' : '';
+  return '<section class="cart-summary"><h2>ご注文内容</h2>' + itemRows + deliveryFeeRow + '<div class="cart-summary-total"><span>合計</span><strong>' + yen(orderTotalPrice()) + '</strong></div></section>';
 }
 
 function cartScreen() {
   const isDelivery = state.orderType === "delivery";
-  const storeSection = isDelivery ? "" : '<section class="section-block"><h2>受け取り予定の店舗</h2>' + storeCard(selectedStore(), { static: true }) + '</section>';
+  const storeSection = isDelivery ? "" : '<section class="section-block"><h2>受け取り予定の店舗</h2>' + storeCard(selectedStore(), { static: true, hideNote: true }) + '</section>';
   const deliveryFields = isDelivery
     ? '<section class="delivery-fields"><h2>配達先情報</h2><p class="delivery-notice">※実験用のため、実際の住所・電話番号は入力しないでください。</p><label>住所<input type="text" name="delivery-address" value="' + state.deliveryAddress + '" autocomplete="street-address" /></label><div class="delivery-phone-field"><span>電話番号</span><div class="delivery-phone-inputs"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" data-phone-index="0" value="' + state.deliveryPhoneParts[0] + '" aria-label="電話番号1" autocomplete="tel-area-code" /><span aria-hidden="true">-</span><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" data-phone-index="1" value="' + state.deliveryPhoneParts[1] + '" aria-label="電話番号2" autocomplete="tel-local-prefix" /><span aria-hidden="true">-</span><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" data-phone-index="2" value="' + state.deliveryPhoneParts[2] + '" aria-label="電話番号3" autocomplete="tel-local-suffix" /></div></div></section>'
     : "";
@@ -284,9 +318,9 @@ function paymentScreen() {
 function finalScreen() {
   const storeHeading = state.orderType === "delivery" ? "配達予定の店舗" : "受け取り予定の店舗";
   return topBar("注文内容の最終確認", { back: true }) +
-    '<section class="confirm-actions"><button class="primary" data-action="complete">注文を確定</button><button class="outline" data-action="cart">注文をキャンセル</button></section>' +
     '<section class="section-block"><h2>支払い方法</h2><p><strong>' + state.selectedPayment + '</strong></p></section>' +
-    '<section class="section-block"><h2>' + storeHeading + '</h2>' + storeCard(selectedStore(), { static: true }) + '</section>' + cartSummary();
+    '<section class="section-block"><h2>' + storeHeading + '</h2>' + storeCard(selectedStore(), { static: true }) + '</section>' + cartSummary() +
+    '<section class="confirm-actions"><button class="primary" data-action="complete">注文を確定</button><button class="outline" data-action="cart">注文をキャンセル</button></section>';
 }
 
 function completeScreen() {
@@ -297,6 +331,7 @@ function completeScreen() {
 function renderScreen() {
   if (state.screen === "home") return homeScreen();
   if (state.screen === "store") return storeScreen();
+  if (state.screen === "delivery") return deliveryScreen();
   if (state.screen === "menu") return menuScreen();
   if (state.screen === "detail") return detailScreen();
   if (state.screen === "cart") return cartScreen();
@@ -325,10 +360,66 @@ function restoreScreenScroll() {
   window.scrollTo(0, 0);
 }
 
+function stopAnnouncementCarousel() {
+  if (announcementTimer) window.clearInterval(announcementTimer);
+  if (announcementScrollTimer) window.clearTimeout(announcementScrollTimer);
+  announcementTimer = null;
+  announcementScrollTimer = null;
+}
+
+function updateAnnouncementDots() {
+  app.querySelectorAll(".announcement-dot").forEach((dot, index) => {
+    const isActive = index === state.announcementIndex;
+    dot.classList.toggle("is-active", isActive);
+    dot.setAttribute("aria-current", isActive ? "true" : "false");
+  });
+}
+
+function showAnnouncement(index, behavior = "smooth") {
+  const track = app.querySelector(".announcement-track");
+  if (!track) return;
+  const banners = Array.from(track.querySelectorAll(".announcement-banner"));
+  if (banners.length === 0) return;
+  state.announcementIndex = (index + banners.length) % banners.length;
+  track.scrollTo({ left: banners[state.announcementIndex].offsetLeft - track.offsetLeft, behavior });
+  updateAnnouncementDots();
+}
+
+function setupAnnouncementCarousel() {
+  const track = app.querySelector(".announcement-track");
+  if (!track) return;
+  const banners = Array.from(track.querySelectorAll(".announcement-banner"));
+  if (banners.length < 1) return;
+  showAnnouncement(state.announcementIndex, "auto");
+  track.addEventListener("scroll", () => {
+    if (announcementScrollTimer) window.clearTimeout(announcementScrollTimer);
+    announcementScrollTimer = window.setTimeout(() => {
+      const closestIndex = banners.reduce((closest, banner, index) => {
+        const bannerPosition = banner.offsetLeft - track.offsetLeft;
+        const closestPosition = banners[closest].offsetLeft - track.offsetLeft;
+        return Math.abs(track.scrollLeft - bannerPosition) < Math.abs(track.scrollLeft - closestPosition) ? index : closest;
+      }, 0);
+      state.announcementIndex = closestIndex;
+      updateAnnouncementDots();
+    }, 80);
+  }, { passive: true });
+  if (banners.length > 1) {
+    announcementTimer = window.setInterval(() => {
+      if (state.screen !== "home") {
+        stopAnnouncementCarousel();
+        return;
+      }
+      showAnnouncement(state.announcementIndex + 1);
+    }, announcementInterval);
+  }
+}
+
 function render() {
+  stopAnnouncementCarousel();
   app.innerHTML = '<div class="phone-shell">' + renderScreen() + '</div>';
   restoreCategoryScroll();
   restoreScreenScroll();
+  if (state.screen === "home") setupAnnouncementCarousel();
 }
 
 app.addEventListener("click", (event) => {
@@ -339,8 +430,10 @@ app.addEventListener("click", (event) => {
   if (action === "back") back();
   if (action === "home") { state.screen = "home"; state.history = []; render(); }
   if (action === "complete-home") { resetCompletedOrder(); state.screen = "home"; state.history = []; render(); }
+  if (action === "announcement-dot") showAnnouncement(Number(id));
   if (action === "store") { state.orderType = "pickup"; go("store"); }
-  if (action === "delivery") { state.orderType = "delivery"; go("menu"); }
+  if (action === "delivery") { state.orderType = "delivery"; go("delivery"); }
+  if (action === "start-delivery") { state.orderType = "delivery"; state.history = ["home"]; state.screen = "menu"; render(); }
   if (action === "select-store") { state.orderType = "pickup"; state.selectedStoreId = id; go("menu"); }
   if (action === "category") {
     const categoryTabsElement = button.closest(".category-tabs");
