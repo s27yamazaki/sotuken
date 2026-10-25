@@ -42,6 +42,11 @@ const state = {
 window.experimentMetrics = Object.freeze({
   getSnapshot: () => mistapTracker.getSnapshot(),
   getTotal: () => mistapTracker.getSnapshot().total,
+  getMistapTotal: () => mistapTracker.getSnapshot().mistapTotal,
+  getTapTotal: () => mistapTracker.getSnapshot().tapTotal,
+  getBackTotal: () => mistapTracker.getSnapshot().backTotal,
+  getDurationMs: () => mistapTracker.getSnapshot().durationMs,
+  getDurationSeconds: () => mistapTracker.getSnapshot().durationSeconds,
   getLogs: () => mistapTracker.getSnapshot().logs,
 });
 
@@ -520,10 +525,17 @@ function render() {
 
 app.addEventListener("click", (event) => {
   if (isLoading || isScreenTransitioning) return;
-  const button = event.target.closest("button");
+  const button = event.target.closest("button, a[href]");
   if (!button || button.disabled) return;
-  const action = button.dataset.action;
+  const isLink = button.matches("a[href]");
+  const action = button.dataset.action || (isLink ? "link" : null);
+  if (!action) return;
   const id = button.dataset.id;
+  const target = id ? `${action}:${id}` : isLink ? `link:${button.href}` : action;
+  const startsMeasurement = state.screen === "home" && (action === "store" || action === "delivery");
+  if (startsMeasurement) mistapTracker.start(target);
+  mistapTracker.trackTap(target, action === "back", { screen: state.screen });
+  if (isLink) return;
   if (action === "back") {
     if (state.screen === "detail" && state.history[state.history.length - 1] === "menu") backWithScreenTransition();
     else back();

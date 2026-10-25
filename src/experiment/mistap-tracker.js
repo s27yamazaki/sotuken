@@ -1,29 +1,87 @@
 import { experimentAnswerDefaults } from "../config/experiment-config.js";
 
-export function createMistapTracker(experimentSettings) {
+export function createMistapTracker(experimentSettings, now = () => performance.now()) {
   const taskDefinition = experimentSettings?.taskDefinition || null;
+  const enabled = Boolean(taskDefinition);
   const expectedItems = new Map(
     (taskDefinition?.items || []).map((item) => [item.productId, item]),
   );
   const optionErrorStates = new Map();
   const quantityErrorStates = new Map();
   const logs = [];
-  let total = 0;
-  let active = Boolean(taskDefinition);
+  let mistapTotal = 0;
+  let tapTotal = 0;
+  let backTotal = 0;
+  let started = false;
+  let completed = false;
+  let startTime = null;
+  let endTime = null;
   let deliveryErrorActive = false;
   let storeErrorActive = false;
   let paymentErrorActive = false;
 
-  function record(action, target, counted, reason, details = {}) {
-    if (!active) return;
-    if (counted) total += 1;
+  function isRunning() {
+    return enabled && started && !completed;
+  }
+
+  function elapsedMs(at = now()) {
+    if (!started) return 0;
+    const endpoint = completed && endTime !== null ? endTime : at;
+    return Math.max(0, endpoint - startTime);
+  }
+
+  function appendLog(entry, at = now()) {
     logs.push({
       timestamp: new Date().toISOString(),
+      elapsedMs: elapsedMs(at),
+      ...entry,
+    });
+  }
+
+  function recordEvaluation(action, target, counted, reason, details = {}) {
+    if (!isRunning()) return;
+    if (counted) mistapTotal += 1;
+    appendLog({
+      type: "mistap-evaluation",
       action,
       target,
       counted,
       reason,
-      total,
+      mistapTotal,
+      ...details,
+    });
+  }
+
+  function start(target) {
+    if (!enabled || started || completed) return false;
+    startTime = now();
+    started = true;
+    appendLog({
+      type: "lifecycle",
+      action: "start",
+      target,
+      counted: false,
+      reason: "measurement-started",
+      mistapTotal,
+      tapTotal,
+      backTotal,
+    }, startTime);
+    return true;
+  }
+
+  function trackTap(target, isBack = false, details = {}) {
+    if (!isRunning()) return;
+    tapTotal += 1;
+    if (isBack) backTotal += 1;
+    appendLog({
+      type: "interaction",
+      action: isBack ? "back" : "tap",
+      target,
+      counted: true,
+      reason: isBack ? "tap-and-back-counted" : "tap-counted",
+      mistapTotal,
+      tapTotal,
+      backTotal,
       ...details,
     });
   }
@@ -41,83 +99,78 @@ export function createMistapTracker(experimentSettings) {
   }
 
   function selectOrderType(orderType) {
-    if (!active) return;
+    if (!isRunning()) return;
     if (orderType === experimentAnswerDefaults.orderType) {
       deliveryErrorActive = false;
-      record("select-order-type", orderType, false, "corrected-order-type");
+      recordEvaluation("select-order-type", orderType, false, "corrected-order-type");
       return;
     }
     const counted = !deliveryErrorActive;
     deliveryErrorActive = true;
-    record("select-order-type", orderType, counted, counted ? "incorrect-order-type" : "incorrect-order-type-already-counted");
+    recordEvaluation("select-order-type", orderType, counted, counted ? "incorrect-order-type" : "incorrect-order-type-already-counted");
   }
 
   function selectStore(storeId) {
-    if (!active) return;
+    if (!isRunning()) return;
     if (storeId === experimentAnswerDefaults.storeId) {
       storeErrorActive = false;
-      record("select-store", storeId, false, "corrected-store");
+      recordEvaluation("select-store", storeId, false, "corrected-store");
       return;
     }
     const counted = !storeErrorActive;
     storeErrorActive = true;
-    record("select-store", storeId, counted, counted ? "incorrect-store" : "incorrect-store-already-counted");
+    recordEvaluation("select-store", storeId, counted, counted ? "incorrect-store" : "incorrect-store-already-counted");
   }
 
   function openProduct(productId) {
-    if (!active) return;
+    if (!isRunning()) return;
     if (hasIncorrectOrderContext()) {
-      record("open-product", productId, false, "ignored-in-incorrect-order-context");
+      recordEvaluation("open-product", productId, false, "ignored-in-incorrect-order-context");
       return;
     }
     const isExpected = expectedItems.has(productId);
-    record(
-      "open-product",
-      productId,
-      !isExpected,
-      isExpected ? "expected-product" : "unexpected-product",
-    );
+    recordEvaluation("open-product", productId, !isExpected, isExpected ? "expected-product" : "unexpected-product");
   }
 
   function selectOption(productId, groupId, choiceId) {
-    if (!active) return;
+    if (!isRunning()) return;
     if (hasIncorrectOrderContext()) {
-      record("select-option", `${productId}:${groupId}:${choiceId}`, false, "ignored-in-incorrect-order-context");
+      recordEvaluation("select-option", `${productId}:${groupId}:${choiceId}`, false, "ignored-in-incorrect-order-context");
       return;
     }
     const item = expectedItem(productId);
     if (!item) {
-      record("select-option", `${productId}:${groupId}:${choiceId}`, false, "option-on-unexpected-product");
+      recordEvaluation("select-option", `${productId}:${groupId}:${choiceId}`, false, "option-on-unexpected-product");
       return;
     }
 
     const expectedChoiceId = item.options[groupId];
     if (expectedChoiceId === undefined) {
-      record("select-option", `${productId}:${groupId}:${choiceId}`, false, "unscored-option");
+      recordEvaluation("select-option", `${productId}:${groupId}:${choiceId}`, false, "unscored-option");
       return;
     }
 
     const key = optionKey(productId, groupId);
     if (choiceId === expectedChoiceId) {
       optionErrorStates.set(key, false);
-      record("select-option", `${productId}:${groupId}:${choiceId}`, false, "corrected-option");
+      recordEvaluation("select-option", `${productId}:${groupId}:${choiceId}`, false, "corrected-option");
       return;
     }
 
     const counted = !optionErrorStates.get(key);
     optionErrorStates.set(key, true);
-    record("select-option", `${productId}:${groupId}:${choiceId}`, counted, counted ? "incorrect-option" : "incorrect-option-already-counted", { expectedChoiceId });
+    recordEvaluation("select-option", `${productId}:${groupId}:${choiceId}`, counted, counted ? "incorrect-option" : "incorrect-option-already-counted", { expectedChoiceId });
   }
 
   function validateOptionsOnAdd(productId, selectedOptions) {
-    if (!active) return;
+    if (!isRunning()) return;
     if (hasIncorrectOrderContext()) {
-      record("validate-options-on-add", productId, false, "ignored-in-incorrect-order-context");
+      recordEvaluation("validate-options-on-add", productId, false, "ignored-in-incorrect-order-context");
       return;
     }
     const item = expectedItem(productId);
     if (!item) {
-      record("validate-options-on-add", productId, false, "unexpected-product-already-scored-on-open");
+      recordEvaluation("validate-options-on-add", productId, false, "unexpected-product-already-scored-on-open");
       return;
     }
 
@@ -126,88 +179,109 @@ export function createMistapTracker(experimentSettings) {
       const key = optionKey(productId, groupId);
       if (actualChoiceId === expectedChoiceId) {
         optionErrorStates.set(key, false);
-        record("validate-option-on-add", `${productId}:${groupId}:${actualChoiceId}`, false, "correct-option-on-add");
+        recordEvaluation("validate-option-on-add", `${productId}:${groupId}:${actualChoiceId}`, false, "correct-option-on-add");
         return;
       }
       const counted = !optionErrorStates.get(key);
       optionErrorStates.set(key, true);
-      record("validate-option-on-add", `${productId}:${groupId}:${actualChoiceId ?? "missing"}`, counted, counted ? "incorrect-option-on-add" : "incorrect-option-on-add-already-counted", { expectedChoiceId });
+      recordEvaluation("validate-option-on-add", `${productId}:${groupId}:${actualChoiceId ?? "missing"}`, counted, counted ? "incorrect-option-on-add" : "incorrect-option-on-add-already-counted", { expectedChoiceId });
     });
   }
 
   function updateQuantity(productId, totalQuantity, source) {
-    if (!active) return;
+    if (!isRunning()) return;
     if (hasIncorrectOrderContext()) {
-      record("change-quantity", `${productId}:${totalQuantity}`, false, "ignored-in-incorrect-order-context", { source });
+      recordEvaluation("change-quantity", `${productId}:${totalQuantity}`, false, "ignored-in-incorrect-order-context", { source });
       return;
     }
     const item = expectedItem(productId);
     if (!item) {
-      record("change-quantity", `${productId}:${totalQuantity}`, false, "quantity-on-unexpected-product", { source });
+      recordEvaluation("change-quantity", `${productId}:${totalQuantity}`, false, "quantity-on-unexpected-product", { source });
       return;
     }
 
     const expectedQuantity = item.quantity ?? experimentAnswerDefaults.quantity;
     if (totalQuantity <= expectedQuantity) {
       quantityErrorStates.set(productId, false);
-      record("change-quantity", `${productId}:${totalQuantity}`, false, "corrected-quantity", { source, expectedQuantity });
+      recordEvaluation("change-quantity", `${productId}:${totalQuantity}`, false, "corrected-quantity", { source, expectedQuantity });
       return;
     }
 
     const counted = !quantityErrorStates.get(productId);
     quantityErrorStates.set(productId, true);
-    record("change-quantity", `${productId}:${totalQuantity}`, counted, counted ? "quantity-exceeded" : "quantity-exceeded-already-counted", { source, expectedQuantity });
+    recordEvaluation("change-quantity", `${productId}:${totalQuantity}`, counted, counted ? "quantity-exceeded" : "quantity-exceeded-already-counted", { source, expectedQuantity });
   }
 
   function selectPayment(payment) {
-    if (!active) return;
+    if (!isRunning()) return;
     if (hasIncorrectOrderContext()) {
-      record("select-payment", payment, false, "ignored-in-incorrect-order-context");
+      recordEvaluation("select-payment", payment, false, "ignored-in-incorrect-order-context");
       return;
     }
     if (payment === experimentAnswerDefaults.payment) {
       paymentErrorActive = false;
-      record("select-payment", payment, false, "corrected-payment");
+      recordEvaluation("select-payment", payment, false, "corrected-payment");
       return;
     }
     const counted = !paymentErrorActive;
     paymentErrorActive = true;
-    record("select-payment", payment, counted, counted ? "incorrect-payment" : "incorrect-payment-already-counted");
+    recordEvaluation("select-payment", payment, counted, counted ? "incorrect-payment" : "incorrect-payment-already-counted");
   }
 
   function confirmPayment(payment) {
-    if (!active) return;
+    if (!isRunning()) return;
     if (hasIncorrectOrderContext()) {
-      record("confirm-payment", payment || "unselected", false, "ignored-in-incorrect-order-context");
+      recordEvaluation("confirm-payment", payment || "unselected", false, "ignored-in-incorrect-order-context");
       return;
     }
     if (payment === experimentAnswerDefaults.payment) {
       paymentErrorActive = false;
-      record("confirm-payment", payment, false, "correct-payment-confirmed");
+      recordEvaluation("confirm-payment", payment, false, "correct-payment-confirmed");
       return;
     }
     const counted = !paymentErrorActive;
     paymentErrorActive = true;
-    record("confirm-payment", payment || "unselected", counted, counted ? "incorrect-payment-confirmed" : "incorrect-payment-confirmed-already-counted");
+    recordEvaluation("confirm-payment", payment || "unselected", counted, counted ? "incorrect-payment-confirmed" : "incorrect-payment-confirmed-already-counted");
   }
 
-  function complete() {
-    if (!active) return;
-    record("complete-experiment", "order", false, "measurement-stopped");
-    active = false;
+  function complete(target = "complete") {
+    if (!isRunning()) return;
+    endTime = now();
+    appendLog({
+      type: "lifecycle",
+      action: "complete",
+      target,
+      counted: false,
+      reason: "measurement-completed",
+      mistapTotal,
+      tapTotal,
+      backTotal,
+    }, endTime);
+    completed = true;
   }
 
   function getSnapshot() {
+    const durationMs = elapsedMs();
     return {
-      enabled: Boolean(taskDefinition),
-      active,
+      enabled,
+      active: isRunning(),
+      started,
+      completed,
+      status: completed ? "completed" : started ? "running" : "not-started",
       task: experimentSettings?.task ?? null,
-      total,
+      total: mistapTotal,
+      mistapTotal,
+      tapTotal,
+      backTotal,
+      durationMs,
+      durationSeconds: durationMs / 1000,
       logs: logs.map((entry) => ({ ...entry })),
     };
   }
 
   return {
+    start,
+    trackTap,
     selectOrderType,
     selectStore,
     openProduct,
