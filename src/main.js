@@ -1,8 +1,10 @@
 ﻿import { menuConfig, storeConfig } from "./config/menu-config.js";
 
 import { homeConfig } from "./config/menu-config.js";
+import { resolveExperimentSettings } from "./config/experiment-config.js";
 
 const app = document.querySelector("#app");
+const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const announcementInterval = 4500;
 const deliveryFee = 300;
 const loadingDuration = 250;
@@ -15,6 +17,7 @@ let screenTransitionTimer = null;
 let isScreenTransitioning = false;
 
 const state = {
+  experiment: runtimeExperimentSettings,
   screen: "home",
   history: [],
   orderType: "pickup",
