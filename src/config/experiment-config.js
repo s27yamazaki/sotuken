@@ -87,6 +87,13 @@ export const experimentTasks = {
   },
 };
 
+export const experimentAnswerDefaults = {
+  orderType: "pickup",
+  storeId: "umeyashiki",
+  payment: "PayPay",
+  quantity: 1,
+};
+
 const validTaskIds = Object.keys(experimentTasks);
 const validColorSchemes = ["pastel", "contrast"];
 const validYellowValues = ["0", "1"];

@@ -2,9 +2,11 @@
 
 import { homeConfig } from "./config/menu-config.js";
 import { resolveExperimentSettings } from "./config/experiment-config.js";
+import { createMistapTracker } from "./experiment/mistap-tracker.js";
 
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
+const mistapTracker = createMistapTracker(runtimeExperimentSettings);
 const announcementInterval = 4500;
 const deliveryFee = 300;
 const loadingDuration = 250;
@@ -36,6 +38,12 @@ const state = {
   quantity: 1,
   cartItems: [],
 };
+
+window.experimentMetrics = Object.freeze({
+  getSnapshot: () => mistapTracker.getSnapshot(),
+  getTotal: () => mistapTracker.getSnapshot().total,
+  getLogs: () => mistapTracker.getSnapshot().logs,
+});
 
 function selectedStore() {
   return storeConfig.stores.find((store) => store.id === state.selectedStoreId);
@@ -93,6 +101,12 @@ function cartTotalPrice() {
   return state.cartItems.reduce((total, cartItem) => total + cartItem.unitPrice * cartItem.quantity, 0);
 }
 
+function cartQuantityForProduct(productId) {
+  return state.cartItems.reduce((total, cartItem) => {
+    return total + (cartItem.item.id === productId ? cartItem.quantity : 0);
+  }, 0);
+}
+
 function orderTotalPrice() {
   return cartTotalPrice() + (state.orderType === "delivery" ? deliveryFee : 0);
 }
@@ -130,7 +144,7 @@ function addSelectedItemToCart() {
 function checkoutBar() {
   const count = cartItemCount();
   if (count === 0) return "";
-  return '<section class="checkout-bar"><div class="checkout-handle"></div><div class="checkout-cart"><span class="cart-icon">🛒</span><span class="cart-count">' + count + '</span></div><strong>' + yen(cartTotalPrice()) + '</strong><button class="primary checkout-button" data-action="checkout">レジに進む</button></section>';
+  return '<section class="checkout-bar"><div class="checkout-cart"><span class="cart-icon">🛒</span><span class="cart-count">' + count + '</span></div><strong>' + yen(cartTotalPrice()) + '</strong><button class="primary checkout-button" data-action="checkout">レジに進む</button></section>';
 }
 
 function go(screen) {
@@ -517,8 +531,18 @@ app.addEventListener("click", (event) => {
   if (action === "home") { state.cartItems = []; state.screen = "home"; state.history = []; render(); }
   if (action === "complete-home") { resetCompletedOrder(); state.screen = "home"; state.history = []; render(); }
   if (action === "announcement-dot") showAnnouncement(Number(id));
-  if (action === "store") { state.cartItems = []; state.orderType = "pickup"; go("store"); }
-  if (action === "delivery") { state.cartItems = []; state.orderType = "delivery"; go("delivery"); }
+  if (action === "store") {
+    mistapTracker.selectOrderType("pickup");
+    state.cartItems = [];
+    state.orderType = "pickup";
+    go("store");
+  }
+  if (action === "delivery") {
+    mistapTracker.selectOrderType("delivery");
+    state.cartItems = [];
+    state.orderType = "delivery";
+    go("delivery");
+  }
   if (action === "start-delivery") {
     showLoadingOverlay(() => {
       state.orderType = "delivery";
@@ -528,6 +552,7 @@ app.addEventListener("click", (event) => {
     });
   }
   if (action === "select-store") {
+    mistapTracker.selectStore(id);
     showLoadingOverlay(() => {
       state.orderType = "pickup";
       state.selectedStoreId = id;
@@ -542,6 +567,7 @@ app.addEventListener("click", (event) => {
     render();
   }
   if (action === "select-item") {
+    mistapTracker.openProduct(id);
     state.menuScrollY = window.scrollY;
     state.selectedItemId = id;
     state.selectedOptions = defaultOptionsForItem(selectedItem());
@@ -555,17 +581,23 @@ app.addEventListener("click", (event) => {
     render();
   }
   if (action === "select-option") {
+    mistapTracker.selectOption(state.selectedItemId, button.dataset.groupId, id);
     state.detailScrollY = window.scrollY;
     state.selectedOptions[button.dataset.groupId] = id;
     state.expandedOptionGroupId = null;
     render();
   }
-  if (action === "add-cart") showLoadingOverlay(addSelectedItemToCart);
+  if (action === "add-cart") {
+    mistapTracker.validateOptionsOnAdd(state.selectedItemId, state.selectedOptions);
+    mistapTracker.updateQuantity(state.selectedItemId, cartQuantityForProduct(state.selectedItemId) + state.quantity, "add-to-cart");
+    showLoadingOverlay(addSelectedItemToCart);
+  }
   if (action === "checkout") showLoadingOverlay(() => go("cart"));
   if (action === "cart-minus") {
     const index = Number(button.dataset.index);
     if (state.cartItems[index] && window.confirm("商品の個数を減らしますか？")) {
       state.cartItems[index].quantity -= 1;
+      mistapTracker.updateQuantity(state.cartItems[index].item.id, cartQuantityForProduct(state.cartItems[index].item.id), "cart-minus");
       if (state.cartItems[index].quantity <= 0) state.cartItems.splice(index, 1);
       if (state.cartItems.length === 0) {
         state.screen = "menu";
@@ -579,16 +611,35 @@ app.addEventListener("click", (event) => {
     const index = Number(button.dataset.index);
     if (state.cartItems[index] && window.confirm("商品の個数を増やしますか？")) {
       state.cartItems[index].quantity += 1;
+      mistapTracker.updateQuantity(state.cartItems[index].item.id, cartQuantityForProduct(state.cartItems[index].item.id), "cart-plus");
       render();
     }
   }
   if (action === "payment-screen") showLoadingOverlay(() => go("payment"));
-  if (action === "payment") { state.selectedPayment = id; render(); }
-  if (action === "final") go("final");
+  if (action === "payment") {
+    mistapTracker.selectPayment(id);
+    state.selectedPayment = id;
+    render();
+  }
+  if (action === "final") {
+    mistapTracker.confirmPayment(state.selectedPayment);
+    go("final");
+  }
   if (action === "cart") returnToCart();
-  if (action === "complete") go("complete");
-  if (action === "minus" && state.quantity > 1) { state.quantity -= 1; render(); }
-  if (action === "plus") { state.quantity += 1; render(); }
+  if (action === "complete") {
+    mistapTracker.complete();
+    go("complete");
+  }
+  if (action === "minus" && state.quantity > 1) {
+    state.quantity -= 1;
+    mistapTracker.updateQuantity(state.selectedItemId, cartQuantityForProduct(state.selectedItemId) + state.quantity, "detail-minus");
+    render();
+  }
+  if (action === "plus") {
+    state.quantity += 1;
+    mistapTracker.updateQuantity(state.selectedItemId, cartQuantityForProduct(state.selectedItemId) + state.quantity, "detail-plus");
+    render();
+  }
 });
 
 app.addEventListener("input", (event) => {
