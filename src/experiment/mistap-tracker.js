@@ -19,6 +19,8 @@ export function createMistapTracker(experimentSettings, now = () => performance.
   let deliveryErrorActive = false;
   let storeErrorActive = false;
   let paymentErrorActive = false;
+  let finalOrderCorrect = null;
+  let receptionNumber = null;
 
   function isRunning() {
     return enabled && started && !completed;
@@ -260,6 +262,21 @@ export function createMistapTracker(experimentSettings, now = () => performance.
     completed = true;
   }
 
+  function setFinalResult(result) {
+    if (!enabled || !completed || receptionNumber !== null) return;
+    finalOrderCorrect = result.correct;
+    receptionNumber = result.receptionNumber;
+    appendLog({
+      type: "result",
+      action: "generate-reception-number",
+      target: receptionNumber,
+      counted: false,
+      reason: finalOrderCorrect ? "final-order-correct" : "final-order-incorrect",
+      finalOrderCorrect,
+      receptionNumber,
+    }, endTime);
+  }
+
   function getSnapshot() {
     const durationMs = elapsedMs();
     return {
@@ -275,6 +292,8 @@ export function createMistapTracker(experimentSettings, now = () => performance.
       backTotal,
       durationMs,
       durationSeconds: durationMs / 1000,
+      finalOrderCorrect,
+      receptionNumber,
       logs: logs.map((entry) => ({ ...entry })),
     };
   }
@@ -291,6 +310,7 @@ export function createMistapTracker(experimentSettings, now = () => performance.
     selectPayment,
     confirmPayment,
     complete,
+    setFinalResult,
     getSnapshot,
   };
 }

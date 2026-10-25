@@ -3,6 +3,7 @@
 import { homeConfig } from "./config/menu-config.js";
 import { resolveExperimentSettings } from "./config/experiment-config.js";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
+import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
@@ -37,6 +38,8 @@ const state = {
   announcementIndex: 0,
   quantity: 1,
   cartItems: [],
+  experimentResult: null,
+  copyStatus: "",
 };
 
 window.experimentMetrics = Object.freeze({
@@ -47,6 +50,8 @@ window.experimentMetrics = Object.freeze({
   getBackTotal: () => mistapTracker.getSnapshot().backTotal,
   getDurationMs: () => mistapTracker.getSnapshot().durationMs,
   getDurationSeconds: () => mistapTracker.getSnapshot().durationSeconds,
+  getFinalOrderCorrect: () => mistapTracker.getSnapshot().finalOrderCorrect,
+  getReceptionNumber: () => mistapTracker.getSnapshot().receptionNumber,
   getLogs: () => mistapTracker.getSnapshot().logs,
 });
 
@@ -126,6 +131,70 @@ function resetCompletedOrder() {
   state.deliveryPhoneParts = ["", "", ""];
   state.menuScrollY = 0;
   state.detailScrollY = 0;
+  state.experimentResult = null;
+  state.copyStatus = "";
+}
+
+function finalizeExperimentOrder() {
+  if (!state.experiment.isExperimentMode) {
+    mistapTracker.complete();
+    return;
+  }
+
+  const evaluation = evaluateFinalOrder(state.experiment, {
+    orderType: state.orderType,
+    storeId: state.selectedStoreId,
+    payment: state.selectedPayment,
+    cartItems: state.cartItems,
+  });
+  mistapTracker.complete();
+  const metrics = mistapTracker.getSnapshot();
+  const receptionNumber = generateReceptionNumber(state.experiment, metrics, evaluation.correct);
+  state.experimentResult = {
+    correct: evaluation.correct,
+    receptionNumber,
+  };
+  state.copyStatus = "";
+  mistapTracker.setFinalResult({ correct: evaluation.correct, receptionNumber });
+}
+
+function fallbackCopyText(value) {
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, value.length);
+  let copied = false;
+  try {
+    copied = document.execCommand("copy");
+  } catch {
+    copied = false;
+  }
+  textarea.remove();
+  return copied;
+}
+
+async function copyReceptionNumber() {
+  const receptionNumber = state.experimentResult?.receptionNumber;
+  if (!receptionNumber) return;
+
+  let copied = false;
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(receptionNumber);
+      copied = true;
+    } catch {
+      copied = false;
+    }
+  }
+  if (!copied) copied = fallbackCopyText(receptionNumber);
+  state.copyStatus = copied
+    ? "コピーしました"
+    : "コピーできませんでした。受付番号を選択してコピーしてください。";
+  render();
 }
 
 function addSelectedItemToCart() {
@@ -425,8 +494,12 @@ function finalScreen() {
 }
 
 function completeScreen() {
+  const receptionNumber = state.experimentResult?.receptionNumber;
+  const numberMarkup = receptionNumber
+    ? '<div class="experiment-reception"><span>受付番号</span><p class="experiment-reception-number">' + receptionNumber + '</p><p>受付番号をコピーして、Googleフォームに戻って入力欄に貼り付けてください。</p><button class="primary" data-action="copy-reception">受付番号をコピー</button><p class="copy-status" role="status" aria-live="polite" aria-atomic="true">' + state.copyStatus + '</p></div>'
+    : '<p class="order-number">A-001</p>';
   return topBar("注文完了", {}) +
-    '<section class="complete"><strong>注文が完了しました</strong><p>これは研究用シミュレータのため、実際の注文は行われません。</p><p class="order-number">A-001</p><button class="primary" data-action="complete-home">ホームへ戻る</button></section>';
+    '<section class="complete"><strong>注文が完了しました</strong><p>これは研究用シミュレータのため、実際の注文は行われません。</p>' + numberMarkup + '<button class="primary" data-action="complete-home">ホームへ戻る</button></section>';
 }
 
 function renderScreen() {
@@ -639,9 +712,10 @@ app.addEventListener("click", (event) => {
   }
   if (action === "cart") returnToCart();
   if (action === "complete") {
-    mistapTracker.complete();
+    finalizeExperimentOrder();
     go("complete");
   }
+  if (action === "copy-reception") copyReceptionNumber();
   if (action === "minus" && state.quantity > 1) {
     state.quantity -= 1;
     mistapTracker.updateQuantity(state.selectedItemId, cartQuantityForProduct(state.selectedItemId) + state.quantity, "detail-minus");

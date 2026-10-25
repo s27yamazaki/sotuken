@@ -1227,6 +1227,49 @@
   font-weight: 900;
 }
 
+.experiment-reception {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.experiment-reception > span {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.experiment-reception-number {
+  max-width: 100%;
+  margin: 0;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+@media (max-width: 360px) {
+  .experiment-reception-number {
+    font-size: 22px;
+  }
+}
+
+.experiment-reception p:not(.experiment-reception-number) {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.experiment-reception .primary {
+  width: min(100%, 280px);
+}
+
+.copy-status {
+  min-height: 1.6em;
+  color: #555;
+  font-size: 14px;
+}
+
 @media (max-width: 360px) {
   .product-grid {
     gap: 10px;
