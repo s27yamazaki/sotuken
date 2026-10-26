@@ -55,6 +55,11 @@ window.experimentMetrics = Object.freeze({
   getLogs: () => mistapTracker.getSnapshot().logs,
 });
 
+function experimentThemeAttribute() {
+  if (!state.experiment.isExperimentMode) return "";
+  return ' data-color-scheme="' + state.experiment.color + '"';
+}
+
 function selectedStore() {
   return storeConfig.stores.find((store) => store.id === state.selectedStoreId);
 }
@@ -257,10 +262,11 @@ function runScreenTransition(targetScreen, direction, updateHistory) {
   if (updateHistory === "push") state.history.push(state.screen);
   if (updateHistory === "pop") state.history.pop();
   state.screen = targetScreen;
-  const incomingMarkup = '<div class="phone-shell">' + renderScreen() + '</div>';
+  const themeAttribute = experimentThemeAttribute();
+  const incomingMarkup = '<div class="phone-shell"' + themeAttribute + '>' + renderScreen() + '</div>';
   const incomingScrollY = screenScrollPosition(targetScreen);
   isScreenTransitioning = true;
-  app.insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '" style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
+  app.insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
   const transition = app.querySelector(".screen-transition");
   const outgoingPanel = transition.querySelector(".screen-transition-outgoing");
   const incomingPanel = transition.querySelector(".screen-transition-incoming");
@@ -590,7 +596,7 @@ function setupAnnouncementCarousel() {
 
 function render() {
   stopAnnouncementCarousel();
-  app.innerHTML = '<div class="phone-shell">' + renderScreen() + '</div>';
+  app.innerHTML = '<div class="phone-shell"' + experimentThemeAttribute() + '>' + renderScreen() + '</div>';
   restoreCategoryScroll();
   restoreScreenScroll();
   if (state.screen === "home") setupAnnouncementCarousel();

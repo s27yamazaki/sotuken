@@ -1555,3 +1555,294 @@
   font-size: 34px;
   font-weight: 900;
 }
+
+/* Experiment color schemes use the same semantic roles and UI coverage. */
+.phone-shell[data-color-scheme="pastel"],
+.screen-transition[data-color-scheme="pastel"] {
+  --theme-page: #fff7f2;
+  --theme-surface: #fff;
+  --theme-text: #2b211d;
+  --theme-text-secondary: #5f514a;
+  --theme-inactive: #665b55;
+  --theme-primary: #f2b66d;
+  --theme-primary-text: #2b211d;
+  --theme-selected: #b83f2a;
+  --theme-selected-text: #fff;
+  --theme-selected-soft: rgba(184, 63, 42, 0.22);
+  --theme-border: #d8c8be;
+  --theme-border-subtle: #e8ddd6;
+  --theme-error: #a62b1f;
+  --theme-disabled: #e8e0db;
+  --theme-disabled-text: #6b625d;
+  --theme-brand: #f2b66d;
+  --theme-brand-text: #2b211d;
+  --theme-order-accent: #b83f2a;
+  --theme-delivery-accent: #39734a;
+  --theme-banner-1: #f7d7a7;
+  --theme-banner-2: #d3e5ce;
+  --theme-banner-3: #ebc9bd;
+  --theme-label-1: #b83f2a;
+  --theme-label-2: #39734a;
+  --theme-label-3: #8c3651;
+  --theme-overlay: rgba(255, 247, 242, 0.94);
+  --theme-shadow: rgba(75, 48, 36, 0.13);
+}
+
+.phone-shell[data-color-scheme="contrast"],
+.screen-transition[data-color-scheme="contrast"] {
+  --theme-page: #f2f2f2;
+  --theme-surface: #fff;
+  --theme-text: #111;
+  --theme-text-secondary: #333;
+  --theme-inactive: #333;
+  --theme-primary: #8f2d16;
+  --theme-primary-text: #fff;
+  --theme-selected: #7a1f0d;
+  --theme-selected-text: #fff;
+  --theme-selected-soft: rgba(122, 31, 13, 0.28);
+  --theme-border: #555;
+  --theme-border-subtle: #777;
+  --theme-error: #b00020;
+  --theme-disabled: #d9d9d9;
+  --theme-disabled-text: #555;
+  --theme-brand: #8f2d16;
+  --theme-brand-text: #fff;
+  --theme-order-accent: #7a1f0d;
+  --theme-delivery-accent: #145c2e;
+  --theme-banner-1: #ffe4a8;
+  --theme-banner-2: #d5f0cf;
+  --theme-banner-3: #f5d0c4;
+  --theme-label-1: #7a1f0d;
+  --theme-label-2: #145c2e;
+  --theme-label-3: #681b3c;
+  --theme-overlay: rgba(255, 255, 255, 0.97);
+  --theme-shadow: rgba(0, 0, 0, 0.22);
+}
+
+.phone-shell[data-color-scheme] {
+  color: var(--theme-text);
+  background: var(--theme-page);
+}
+
+.screen-transition[data-color-scheme] {
+  background: var(--theme-page);
+}
+
+.phone-shell[data-color-scheme] .home-page,
+.phone-shell[data-color-scheme] .store-sheet {
+  background-color: var(--theme-page);
+}
+
+.phone-shell[data-color-scheme] .top-bar,
+.phone-shell[data-color-scheme] .shortcut-card,
+.phone-shell[data-color-scheme] .store-card,
+.phone-shell[data-color-scheme] .product-card,
+.phone-shell[data-color-scheme] .payment-card,
+.phone-shell[data-color-scheme] .summary,
+.phone-shell[data-color-scheme] .complete,
+.phone-shell[data-color-scheme] .home-order-card,
+.phone-shell[data-color-scheme] .bottom-nav,
+.phone-shell[data-color-scheme] .sub-title,
+.phone-shell[data-color-scheme] .sheet-tabs .is-active,
+.phone-shell[data-color-scheme] .category-tabs,
+.phone-shell[data-color-scheme] .category-tabs button,
+.phone-shell[data-color-scheme] .detail-hero,
+.phone-shell[data-color-scheme] .detail-notes,
+.phone-shell[data-color-scheme] .detail-list,
+.phone-shell[data-color-scheme] .delivery-fields,
+.phone-shell[data-color-scheme] .choice-preview button,
+.phone-shell[data-color-scheme] .option-card,
+.phone-shell[data-color-scheme] .order-bar,
+.phone-shell[data-color-scheme] .bottom-action,
+.phone-shell[data-color-scheme] .outline,
+.phone-shell[data-color-scheme] .detail-row button,
+.phone-shell[data-color-scheme] .outline-small,
+.phone-shell[data-color-scheme] .confirm-actions,
+.phone-shell[data-color-scheme] .blank-screen,
+.phone-shell[data-color-scheme] .delivery-start-screen,
+.phone-shell[data-color-scheme] .store-photo-image,
+.phone-shell[data-color-scheme] .checkout-bar,
+.phone-shell[data-color-scheme] .cart-summary,
+.phone-shell[data-color-scheme] .delivery-fields input {
+  background-color: var(--theme-surface);
+}
+
+.phone-shell[data-color-scheme] .top-bar h1,
+.phone-shell[data-color-scheme] .icon-button,
+.phone-shell[data-color-scheme] .home-announcement-section h2,
+.phone-shell[data-color-scheme] .home-order-section h2,
+.phone-shell[data-color-scheme] .home-info-section h2,
+.phone-shell[data-color-scheme] .home-social-section h2,
+.phone-shell[data-color-scheme] .home-order-card,
+.phone-shell[data-color-scheme] .store-card,
+.phone-shell[data-color-scheme] .home-info-section p,
+.phone-shell[data-color-scheme] .home-social-links a,
+.phone-shell[data-color-scheme] .store-list-title,
+.phone-shell[data-color-scheme] .category-tabs button,
+.phone-shell[data-color-scheme] .note,
+.phone-shell[data-color-scheme] .product-card,
+.phone-shell[data-color-scheme] .payment-card,
+.phone-shell[data-color-scheme] .detail-notes,
+.phone-shell[data-color-scheme] .delivery-fields input,
+.phone-shell[data-color-scheme] .option-card,
+.phone-shell[data-color-scheme] .outline,
+.phone-shell[data-color-scheme] .detail-row button,
+.phone-shell[data-color-scheme] .outline-small,
+.phone-shell[data-color-scheme] .choice-preview button,
+.phone-shell[data-color-scheme] .cart-summary-main strong,
+.phone-shell[data-color-scheme] .cart-summary-main p,
+.phone-shell[data-color-scheme] .cart-summary-fee,
+.phone-shell[data-color-scheme] .checkout-bar strong,
+.phone-shell[data-color-scheme] .delivery-start-screen h2,
+.phone-shell[data-color-scheme] .delivery-start-screen p {
+  color: var(--theme-text);
+}
+
+.phone-shell[data-color-scheme] .home-order-card small,
+.phone-shell[data-color-scheme] .home-card-arrow,
+.phone-shell[data-color-scheme] .store-detail p,
+.phone-shell[data-color-scheme] .delivery-notice,
+.phone-shell[data-color-scheme] .detail-row a,
+.phone-shell[data-color-scheme] .option-summary > div > span,
+.phone-shell[data-color-scheme] .option-card span,
+.phone-shell[data-color-scheme] .summary p,
+.phone-shell[data-color-scheme] .copy-status {
+  color: var(--theme-text-secondary);
+}
+
+.phone-shell[data-color-scheme] .nav-item,
+.phone-shell[data-color-scheme] .nav-item-symbol,
+.phone-shell[data-color-scheme] .sheet-tabs button {
+  color: var(--theme-inactive);
+}
+
+.phone-shell[data-color-scheme] .primary,
+.phone-shell[data-color-scheme] .pill,
+.phone-shell[data-color-scheme] .cart-count {
+  background: var(--theme-primary);
+  color: var(--theme-primary-text);
+}
+
+.phone-shell[data-color-scheme] .category-tabs .is-active,
+.phone-shell[data-color-scheme] .nav-item.is-active,
+.phone-shell[data-color-scheme] .nav-item.is-active .nav-item-symbol {
+  color: var(--theme-selected);
+}
+
+.phone-shell[data-color-scheme] .category-tabs .is-active {
+  border-color: var(--theme-selected);
+}
+
+.phone-shell[data-color-scheme] .option-card.is-selected,
+.phone-shell[data-color-scheme] .payment-card.is-selected {
+  background: var(--theme-selected);
+  color: var(--theme-selected-text);
+  outline-color: var(--theme-selected);
+  box-shadow: 0 0 0 4px var(--theme-selected-soft);
+}
+
+.phone-shell[data-color-scheme] .option-card.is-selected span {
+  color: var(--theme-selected-text);
+}
+
+.phone-shell[data-color-scheme] .top-bar,
+.phone-shell[data-color-scheme] .bottom-nav,
+.phone-shell[data-color-scheme] .category-tabs,
+.phone-shell[data-color-scheme] .home-order-section,
+.phone-shell[data-color-scheme] .home-info-section,
+.phone-shell[data-color-scheme] .detail-row,
+.phone-shell[data-color-scheme] .delivery-fields,
+.phone-shell[data-color-scheme] .option-group,
+.phone-shell[data-color-scheme] .order-bar,
+.phone-shell[data-color-scheme] .bottom-action,
+.phone-shell[data-color-scheme] .cart-summary-item,
+.phone-shell[data-color-scheme] .cart-summary-fee {
+  border-color: var(--theme-border-subtle);
+}
+
+.phone-shell[data-color-scheme] .home-order-card,
+.phone-shell[data-color-scheme] .option-card,
+.phone-shell[data-color-scheme] .delivery-fields input,
+.phone-shell[data-color-scheme] .outline,
+.phone-shell[data-color-scheme] .detail-row button,
+.phone-shell[data-color-scheme] .outline-small {
+  border-color: var(--theme-border);
+}
+
+.phone-shell[data-color-scheme] .home-order-card.is-order {
+  border-left-color: var(--theme-order-accent);
+}
+
+.phone-shell[data-color-scheme] .home-order-card.is-delivery {
+  border-left-color: var(--theme-delivery-accent);
+}
+
+.phone-shell[data-color-scheme] .primary:disabled {
+  background: var(--theme-disabled);
+  color: var(--theme-disabled-text);
+}
+
+.phone-shell[data-color-scheme] .quantity button {
+  border-color: var(--theme-border);
+  background: var(--theme-surface);
+  color: var(--theme-inactive);
+}
+
+.phone-shell[data-color-scheme] .cart-summary-quantity button,
+.phone-shell[data-color-scheme] .close-button {
+  background: var(--theme-text);
+  color: var(--theme-surface);
+}
+
+.phone-shell[data-color-scheme] .badge,
+.phone-shell[data-color-scheme] .soldout {
+  color: var(--theme-error);
+}
+
+.phone-shell[data-color-scheme] .badge {
+  background: var(--theme-error);
+  color: #fff;
+}
+
+.phone-shell[data-color-scheme] .home-brand {
+  background-color: var(--theme-brand);
+}
+
+.phone-shell[data-color-scheme] .home-brand h1 {
+  color: var(--theme-brand-text);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+}
+
+.phone-shell[data-color-scheme] .announcement-banner {
+  color: var(--theme-text);
+  border-color: var(--theme-border);
+}
+
+.phone-shell[data-color-scheme] .announcement-banner-1 { background: var(--theme-banner-1); }
+.phone-shell[data-color-scheme] .announcement-banner-2 { background: var(--theme-banner-2); }
+.phone-shell[data-color-scheme] .announcement-banner-3 { background: var(--theme-banner-3); }
+.phone-shell[data-color-scheme] .announcement-label { background: var(--theme-label-1); }
+.phone-shell[data-color-scheme] .announcement-banner-2 .announcement-label { background: var(--theme-label-2); }
+.phone-shell[data-color-scheme] .announcement-banner-3 .announcement-label { background: var(--theme-label-3); }
+.phone-shell[data-color-scheme] .announcement-dot { background: var(--theme-border); }
+.phone-shell[data-color-scheme] .announcement-dot.is-active { background: var(--theme-selected); }
+
+.phone-shell[data-color-scheme] .loading-overlay {
+  background: var(--theme-overlay);
+  color: var(--theme-text);
+}
+
+.phone-shell[data-color-scheme] .loading-spinner {
+  background: repeating-conic-gradient(var(--theme-text) 0deg 12deg, var(--theme-border) 12deg 24deg, transparent 24deg 30deg);
+}
+
+.phone-shell[data-color-scheme] .store-card,
+.phone-shell[data-color-scheme] .product-card,
+.phone-shell[data-color-scheme] .payment-card,
+.phone-shell[data-color-scheme] .complete,
+.phone-shell[data-color-scheme] .home-order-card,
+.phone-shell[data-color-scheme] .checkout-bar {
+  box-shadow: 0 2px 10px var(--theme-shadow);
+}
