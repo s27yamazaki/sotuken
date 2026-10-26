@@ -98,12 +98,13 @@
 .screen-transition-panel {
   position: absolute;
   inset: 0;
+  right: auto;
+  width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: none;
   scrollbar-width: none;
-  will-change: transform;
-  transition: transform var(--screen-transition-duration) ease-out;
+  transition: left var(--screen-transition-duration) ease-out;
 }
 
 .screen-transition-panel::-webkit-scrollbar {
@@ -116,35 +117,36 @@
 
 .screen-transition-forward .screen-transition-outgoing,
 .screen-transition-back .screen-transition-outgoing {
-  transform: translateX(0);
+  left: 0;
 }
 
 .screen-transition-forward .screen-transition-incoming {
   z-index: 2;
-  transform: translateX(100%);
+  left: 100%;
   box-shadow: -8px 0 20px rgba(0, 0, 0, 0.12);
 }
 
 .screen-transition-forward.is-running .screen-transition-outgoing {
-  transform: translateX(-28%);
+  left: -28%;
 }
 
 .screen-transition-forward.is-running .screen-transition-incoming,
 .screen-transition-back.is-running .screen-transition-incoming {
-  transform: translateX(0);
+  left: 0;
 }
 
 .screen-transition-back .screen-transition-incoming {
-  transform: translateX(-28%);
+  left: -28%;
 }
 
 .screen-transition-back .screen-transition-outgoing {
   z-index: 2;
+  left: 0;
   box-shadow: -8px 0 20px rgba(0, 0, 0, 0.12);
 }
 
 .screen-transition-back.is-running .screen-transition-outgoing {
-  transform: translateX(100%);
+  left: 100%;
 }
 
 .status-bar {

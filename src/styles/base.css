@@ -13,7 +13,9 @@ html {
 }
 
 #app[data-vision-filter="yellowed"] {
+  -webkit-filter: url("#lens-reference-20-70");
   filter: url("#lens-reference-20-70");
+  isolation: isolate;
 }
 
 body {

@@ -9,8 +9,6 @@ const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
 const yellowFilterEnabled = runtimeExperimentSettings.isExperimentMode && runtimeExperimentSettings.yellowEnabled;
-if (yellowFilterEnabled) app.dataset.visionFilter = "yellowed";
-else delete app.dataset.visionFilter;
 const announcementInterval = 4500;
 const deliveryFee = 300;
 const loadingDuration = 250;
@@ -62,6 +60,15 @@ window.experimentMetrics = Object.freeze({
 function experimentThemeAttribute() {
   if (!state.experiment.isExperimentMode) return "";
   return ' data-color-scheme="' + state.experiment.color + '"';
+}
+
+function syncVisionFilter() {
+  delete app.dataset.visionFilter;
+  if (!yellowFilterEnabled) return;
+  // WebKit can retain an unfiltered compositing layer when the filter is set
+  // before dynamic screen content exists. Re-resolve it after each render.
+  void app.offsetWidth;
+  app.dataset.visionFilter = "yellowed";
 }
 
 function selectedStore() {
@@ -271,6 +278,7 @@ function runScreenTransition(targetScreen, direction, updateHistory) {
   const incomingScrollY = screenScrollPosition(targetScreen);
   isScreenTransitioning = true;
   app.insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
+  syncVisionFilter();
   const transition = app.querySelector(".screen-transition");
   const outgoingPanel = transition.querySelector(".screen-transition-outgoing");
   const incomingPanel = transition.querySelector(".screen-transition-incoming");
@@ -308,6 +316,7 @@ function showLoadingOverlay(onComplete) {
   isLoading = true;
   phoneShell.setAttribute("aria-busy", "true");
   phoneShell.insertAdjacentHTML("beforeend", '<div class="loading-overlay" role="status" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><span>読み込み中</span></div>');
+  syncVisionFilter();
   loadingTimer = window.setTimeout(() => {
     isLoading = false;
     loadingTimer = null;
@@ -341,6 +350,7 @@ function openQuantityConfirmation(type, index, trigger) {
   pendingConfirmation = { type, index, trigger };
   const message = type === "decrease" ? "商品の個数を減らしますか？" : "商品の個数を増やしますか？";
   phoneShell.insertAdjacentHTML("beforeend", confirmationDialogMarkup(message));
+  syncVisionFilter();
   setBackgroundInteractionDisabled(true);
   app.querySelector('[data-action="accept-confirmation"]')?.focus();
 }
@@ -655,6 +665,7 @@ function setupAnnouncementCarousel() {
 function render() {
   stopAnnouncementCarousel();
   app.innerHTML = '<div class="phone-shell"' + experimentThemeAttribute() + '>' + renderScreen() + '</div>';
+  syncVisionFilter();
   restoreCategoryScroll();
   restoreScreenScroll();
   if (state.screen === "home") setupAnnouncementCarousel();
