@@ -12,6 +12,10 @@ html {
   background: #e9e9e9;
 }
 
+#app[data-vision-filter="yellowed"] {
+  filter: url("#lens-reference-20-70");
+}
+
 body {
   min-width: 320px;
   margin: 0;
@@ -23,4 +27,12 @@ button {
 
 #app {
   min-height: 100vh;
+}
+
+.visual-filter-definitions {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
 }

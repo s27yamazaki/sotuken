@@ -36,6 +36,48 @@
   animation: loading-spin 3.2s linear infinite;
 }
 
+.confirmation-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: grid;
+  place-items: center;
+  width: min(100vw, 430px);
+  margin: 0 auto;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.confirmation-dialog {
+  width: 100%;
+  max-width: 340px;
+  padding: 24px;
+  border-radius: 8px;
+  background: #fff;
+  color: #282828;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+}
+
+.confirmation-dialog h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+
+.confirmation-dialog p {
+  margin: 0 0 24px;
+  line-height: 1.6;
+}
+
+.confirmation-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.confirmation-dialog-actions button {
+  min-width: 0;
+}
+
 @keyframes loading-spin {
   to {
     transform: rotate(360deg);
@@ -1663,7 +1705,8 @@
 .phone-shell[data-color-scheme] .store-photo-image,
 .phone-shell[data-color-scheme] .checkout-bar,
 .phone-shell[data-color-scheme] .cart-summary,
-.phone-shell[data-color-scheme] .delivery-fields input {
+.phone-shell[data-color-scheme] .delivery-fields input,
+.phone-shell[data-color-scheme] .confirmation-dialog {
   background-color: var(--theme-surface);
 }
 
@@ -1694,7 +1737,9 @@
 .phone-shell[data-color-scheme] .cart-summary-fee,
 .phone-shell[data-color-scheme] .checkout-bar strong,
 .phone-shell[data-color-scheme] .delivery-start-screen h2,
-.phone-shell[data-color-scheme] .delivery-start-screen p {
+.phone-shell[data-color-scheme] .delivery-start-screen p,
+.phone-shell[data-color-scheme] .confirmation-dialog h2,
+.phone-shell[data-color-scheme] .confirmation-dialog p {
   color: var(--theme-text);
 }
 

@@ -8,7 +8,28 @@
     <link rel="stylesheet" href="./src/styles/theme.css" />
   </head>
   <body>
+    <svg class="visual-filter-definitions" aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="lens-reference-20-70" color-interpolation-filters="linearRGB" x="0" y="0" width="100%" height="100%">
+          <feColorMatrix
+            type="matrix"
+            values="0.932675028852 0.046440604984 -0.016148691713 0 0 -0.005685981497 0.707416751687 0.022443569675 0 0 -0.009362782733 -0.027474700634 0.386341069418 0 0 0 0 0 1 0"
+          />
+        </filter>
+      </defs>
+    </svg>
     <main id="app"></main>
+    <script>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        const validTask = ["1", "2", "3", "4"].includes(params.get("task"));
+        const validColor = ["pastel", "contrast"].includes(params.get("color"));
+        const validYellow = ["0", "1"].includes(params.get("yellow"));
+        if (validTask && validColor && validYellow && params.get("yellow") === "1") {
+          document.querySelector("#app").dataset.visionFilter = "yellowed";
+        }
+      })();
+    </script>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

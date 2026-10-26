@@ -8,6 +8,9 @@ import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experi
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
+const yellowFilterEnabled = runtimeExperimentSettings.isExperimentMode && runtimeExperimentSettings.yellowEnabled;
+if (yellowFilterEnabled) app.dataset.visionFilter = "yellowed";
+else delete app.dataset.visionFilter;
 const announcementInterval = 4500;
 const deliveryFee = 300;
 const loadingDuration = 250;
@@ -18,6 +21,7 @@ let loadingTimer = null;
 let isLoading = false;
 let screenTransitionTimer = null;
 let isScreenTransitioning = false;
+let pendingConfirmation = null;
 
 const state = {
   experiment: runtimeExperimentSettings,
@@ -309,6 +313,60 @@ function showLoadingOverlay(onComplete) {
     loadingTimer = null;
     onComplete();
   }, loadingDuration);
+}
+
+function confirmationDialogMarkup(message) {
+  return '<div class="confirmation-modal" role="presentation"><section class="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmation-title" aria-describedby="confirmation-message"><h2 id="confirmation-title">確認</h2><p id="confirmation-message">' + message + '</p><div class="confirmation-dialog-actions"><button class="outline" data-action="cancel-confirmation">キャンセル</button><button class="primary" data-action="accept-confirmation">確定</button></div></section></div>';
+}
+
+function setBackgroundInteractionDisabled(disabled) {
+  const phoneShell = app.querySelector(".phone-shell");
+  if (!phoneShell) return;
+  Array.from(phoneShell.children).forEach((child) => {
+    if (child.classList.contains("confirmation-modal")) return;
+    if (disabled) {
+      child.setAttribute("inert", "");
+      child.setAttribute("aria-hidden", "true");
+    } else {
+      child.removeAttribute("inert");
+      child.removeAttribute("aria-hidden");
+    }
+  });
+}
+
+function openQuantityConfirmation(type, index, trigger) {
+  if (pendingConfirmation) return;
+  const phoneShell = app.querySelector(".phone-shell");
+  if (!phoneShell) return;
+  pendingConfirmation = { type, index, trigger };
+  const message = type === "decrease" ? "商品の個数を減らしますか？" : "商品の個数を増やしますか？";
+  phoneShell.insertAdjacentHTML("beforeend", confirmationDialogMarkup(message));
+  setBackgroundInteractionDisabled(true);
+  app.querySelector('[data-action="accept-confirmation"]')?.focus();
+}
+
+function closeConfirmation({ restoreFocus = true } = {}) {
+  const confirmation = pendingConfirmation;
+  pendingConfirmation = null;
+  app.querySelector(".confirmation-modal")?.remove();
+  setBackgroundInteractionDisabled(false);
+  if (restoreFocus && confirmation?.trigger?.isConnected) confirmation.trigger.focus();
+  return confirmation;
+}
+
+function applyQuantityConfirmation(confirmation) {
+  const cartItem = state.cartItems[confirmation.index];
+  if (!cartItem) return;
+  if (confirmation.type === "decrease") {
+    cartItem.quantity -= 1;
+    mistapTracker.updateQuantity(cartItem.item.id, cartQuantityForProduct(cartItem.item.id), "cart-minus");
+    if (cartItem.quantity <= 0) state.cartItems.splice(confirmation.index, 1);
+    if (state.cartItems.length === 0) state.screen = "menu";
+  } else {
+    cartItem.quantity += 1;
+    mistapTracker.updateQuantity(cartItem.item.id, cartQuantityForProduct(cartItem.item.id), "cart-plus");
+  }
+  render();
 }
 
 function topBar(title, options = {}) {
@@ -609,6 +667,7 @@ app.addEventListener("click", (event) => {
   const isLink = button.matches("a[href]");
   const action = button.dataset.action || (isLink ? "link" : null);
   if (!action) return;
+  if (pendingConfirmation && !["accept-confirmation", "cancel-confirmation"].includes(action)) return;
   const id = button.dataset.id;
   const target = id ? `${action}:${id}` : isLink ? `link:${button.href}` : action;
   const startsMeasurement = state.screen === "home" && (action === "store" || action === "delivery");
@@ -686,26 +745,14 @@ app.addEventListener("click", (event) => {
   if (action === "checkout") showLoadingOverlay(() => go("cart"));
   if (action === "cart-minus") {
     const index = Number(button.dataset.index);
-    if (state.cartItems[index] && window.confirm("商品の個数を減らしますか？")) {
-      state.cartItems[index].quantity -= 1;
-      mistapTracker.updateQuantity(state.cartItems[index].item.id, cartQuantityForProduct(state.cartItems[index].item.id), "cart-minus");
-      if (state.cartItems[index].quantity <= 0) state.cartItems.splice(index, 1);
-      if (state.cartItems.length === 0) {
-        state.screen = "menu";
-        render();
-        return;
-      }
-      render();
-    }
+    if (state.cartItems[index]) openQuantityConfirmation("decrease", index, button);
   }
   if (action === "cart-plus") {
     const index = Number(button.dataset.index);
-    if (state.cartItems[index] && window.confirm("商品の個数を増やしますか？")) {
-      state.cartItems[index].quantity += 1;
-      mistapTracker.updateQuantity(state.cartItems[index].item.id, cartQuantityForProduct(state.cartItems[index].item.id), "cart-plus");
-      render();
-    }
+    if (state.cartItems[index]) openQuantityConfirmation("increase", index, button);
   }
+  if (action === "cancel-confirmation") closeConfirmation();
+  if (action === "accept-confirmation") applyQuantityConfirmation(closeConfirmation({ restoreFocus: false }));
   if (action === "payment-screen") showLoadingOverlay(() => go("payment"));
   if (action === "payment") {
     mistapTracker.selectPayment(id);
@@ -731,6 +778,28 @@ app.addEventListener("click", (event) => {
     state.quantity += 1;
     mistapTracker.updateQuantity(state.selectedItemId, cartQuantityForProduct(state.selectedItemId) + state.quantity, "detail-plus");
     render();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (!pendingConfirmation) return;
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeConfirmation();
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const dialog = app.querySelector(".confirmation-dialog");
+  const controls = dialog ? Array.from(dialog.querySelectorAll("button:not(:disabled)")) : [];
+  if (controls.length === 0) return;
+  const first = controls[0];
+  const last = controls[controls.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
   }
 });
 
