@@ -5,10 +5,12 @@ import { resolveExperimentSettings } from "./config/experiment-config.js";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
+const simulatorBuildId = "js-20261028-diagnostic-1";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
 const yellowFilterEnabled = runtimeExperimentSettings.isExperimentMode && runtimeExperimentSettings.yellowEnabled;
+const debugEnabled = new URLSearchParams(window.location.search).get("debug") === "1";
 const announcementInterval = 4500;
 const deliveryFee = 300;
 const loadingDuration = 250;
@@ -61,6 +63,44 @@ function experimentThemeAttribute() {
   if (!state.experiment.isExperimentMode) return "";
   return ' data-color-scheme="' + state.experiment.color + '"';
 }
+
+function diagnosticPatchMarkup(location) {
+  if (!debugEnabled) return "";
+  return '<div class="diagnostic-color-patch diagnostic-color-patch-' + location + '" aria-label="黄変化診断パッチ ' + location + '"><span class="diagnostic-white">W</span><span class="diagnostic-gray">G</span><span class="diagnostic-black">B</span></div>';
+}
+
+function updateDebugPanel() {
+  if (!debugEnabled) return;
+  const panel = document.querySelector("#simulator-debug-panel");
+  if (!panel) return;
+  const appStyle = window.getComputedStyle(app);
+  const rootStyle = window.getComputedStyle(document.documentElement);
+  const cssBuildId = rootStyle.getPropertyValue("--simulator-css-build").trim().replace(/^['\"]|['\"]$/g, "") || "未取得";
+  const standardFilter = appStyle.filter || "未取得";
+  const webkitFilter = appStyle.webkitFilter || appStyle.getPropertyValue("-webkit-filter") || "未取得";
+  const svgFilter = document.querySelector("#lens-reference-20-70");
+  const matrix = svgFilter?.querySelector("feColorMatrix");
+  const errors = window.__simulatorDiagnostics?.errors || [];
+  const values = [
+    `JS build: ${simulatorBuildId}`,
+    `CSS build: ${cssBuildId}`,
+    `task: ${state.experiment.task ?? "null"}`,
+    `color: ${state.experiment.color ?? "null"}`,
+    `yellow: ${state.experiment.yellow ?? "null"}`,
+    `valid experiment: ${state.experiment.isExperimentMode}`,
+    `screen: ${state.screen}`,
+    `#app data-filter: ${app.dataset.visionFilter || "none"}`,
+    `computed filter: ${standardFilter}`,
+    `computed -webkit-filter: ${webkitFilter}`,
+    `SVG filter: ${svgFilter ? "present" : "missing"}`,
+    `feColorMatrix: ${matrix ? "present" : "missing"}`,
+    `JS errors: ${errors.length}`,
+  ];
+  if (errors.length > 0) values.push(...errors.map((error, index) => `error ${index + 1}: ${error}`));
+  panel.textContent = values.join("\n");
+}
+
+window.__renderSimulatorDiagnostics = updateDebugPanel;
 
 function syncVisionFilter() {
   delete app.dataset.visionFilter;
@@ -463,7 +503,7 @@ function deliveryScreen() {
 function categoryTabs() {
   return '<nav class="category-tabs">' + menuConfig.categories.map((category) => {
     return '<button class="' + (category.id === state.selectedCategoryId ? 'is-active' : '') + '" data-action="category" data-id="' + category.id + '">' + category.label + '</button>';
-  }).join("") + '</nav>';
+  }).join("") + diagnosticPatchMarkup("category") + '</nav>';
 }
 
 function productCard(item) {
@@ -664,11 +704,12 @@ function setupAnnouncementCarousel() {
 
 function render() {
   stopAnnouncementCarousel();
-  app.innerHTML = '<div class="phone-shell"' + experimentThemeAttribute() + '>' + renderScreen() + '</div>';
+  app.innerHTML = '<div class="phone-shell"' + experimentThemeAttribute() + '>' + renderScreen() + '</div>' + diagnosticPatchMarkup("root");
   syncVisionFilter();
   restoreCategoryScroll();
   restoreScreenScroll();
   if (state.screen === "home") setupAnnouncementCarousel();
+  updateDebugPanel();
 }
 
 app.addEventListener("click", (event) => {

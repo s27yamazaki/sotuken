@@ -1,4 +1,5 @@
 :root {
+  --simulator-css-build: "css-20261028-diagnostic-1";
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #282828;
   background: #e9e9e9;
@@ -37,4 +38,47 @@ button {
   height: 0;
   overflow: hidden;
   pointer-events: none;
+}
+
+.diagnostic-color-patch {
+  display: flex;
+  width: max-content;
+  border: 1px solid #000;
+  font: 700 9px/20px monospace;
+  letter-spacing: 0;
+}
+
+.diagnostic-color-patch span {
+  display: block;
+  width: 22px;
+  height: 20px;
+  text-align: center;
+}
+
+.diagnostic-white {
+  background: #fff;
+  color: #000;
+}
+
+.diagnostic-gray {
+  background: #808080;
+  color: #000;
+}
+
+.diagnostic-black {
+  background: #000;
+  color: #fff;
+}
+
+.diagnostic-color-patch-root {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 80;
+}
+
+.diagnostic-color-patch-category {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-right: 8px;
 }

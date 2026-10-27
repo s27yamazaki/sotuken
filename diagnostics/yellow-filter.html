@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>黄変化SVGフィルター最小診断</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 20px; background: #ececec; color: #111; font-family: system-ui, sans-serif; }
+      main { max-width: 420px; margin: 0 auto; }
+      h1 { font-size: 20px; }
+      .note { line-height: 1.6; }
+      .filter-target, .reference { margin: 16px 0; padding: 20px; border: 2px solid #222; background: #fff; }
+      .filter-target { -webkit-filter: url("#lens-reference-20-70-minimal"); filter: url("#lens-reference-20-70-minimal"); }
+      .patches { display: grid; grid-template-columns: repeat(3, 1fr); height: 90px; border: 1px solid #111; }
+      .patches div { display: grid; place-items: center; font-weight: 800; }
+      .white { background: #fff; color: #000; }
+      .gray { background: #808080; color: #000; }
+      .black { background: #000; color: #fff; }
+      #minimal-diagnostics { padding: 12px; background: #111; color: #fff; font: 12px/1.5 monospace; white-space: pre-wrap; word-break: break-all; }
+      .definitions { position: absolute; width: 0; height: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <svg class="definitions" aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="lens-reference-20-70-minimal" color-interpolation-filters="linearRGB" x="0" y="0" width="100%" height="100%">
+          <feColorMatrix type="matrix" values="0.932675028852 0.046440604984 -0.016148691713 0 0 -0.005685981497 0.707416751687 0.022443569675 0 0 -0.009362782733 -0.027474700634 0.386341069418 0 0 0 0 0 1 0" />
+        </filter>
+      </defs>
+    </svg>
+    <main>
+      <h1>黄変化SVGフィルター最小診断</h1>
+      <p class="note">上段だけに、本体と同じ行列を親要素へ一度適用しています。上段の白は基準出力 #FBDDA0、灰色は #7E6E4E、黒は #000000 が目安です。</p>
+      <section class="filter-target" id="minimal-filter-target">
+        <strong>フィルター適用対象</strong>
+        <div class="patches"><div class="white">白</div><div class="gray">灰</div><div class="black">黒</div></div>
+      </section>
+      <section class="reference">
+        <strong>未変換の比較用</strong>
+        <div class="patches"><div class="white">白</div><div class="gray">灰</div><div class="black">黒</div></div>
+      </section>
+      <pre id="minimal-diagnostics"></pre>
+    </main>
+    <script>
+      (() => {
+        const target = document.querySelector("#minimal-filter-target");
+        const style = getComputedStyle(target);
+        document.querySelector("#minimal-diagnostics").textContent = [
+          "page build: minimal-20261028-diagnostic-1",
+          `computed filter: ${style.filter || "未取得"}`,
+          `computed -webkit-filter: ${style.webkitFilter || style.getPropertyValue("-webkit-filter") || "未取得"}`,
+          `SVG filter: ${document.querySelector("#lens-reference-20-70-minimal") ? "present" : "missing"}`,
+          `user agent: ${navigator.userAgent}`,
+        ].join("\n");
+      })();
+    </script>
+  </body>
+</html>

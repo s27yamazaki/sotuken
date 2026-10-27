@@ -22,6 +22,40 @@
     <script>
       (() => {
         const params = new URLSearchParams(window.location.search);
+        const debugEnabled = params.get("debug") === "1";
+        const diagnostics = {
+          enabled: debugEnabled,
+          errors: [],
+        };
+        window.__simulatorDiagnostics = diagnostics;
+
+        const recordError = (message) => {
+          diagnostics.errors.push(String(message));
+          if (typeof window.__renderSimulatorDiagnostics === "function") {
+            window.__renderSimulatorDiagnostics();
+          } else {
+            const panel = document.querySelector("#simulator-debug-panel");
+            if (panel) panel.textContent = "JavaScript読み込み前エラー\n" + diagnostics.errors.join("\n");
+          }
+        };
+
+        if (debugEnabled) {
+          const panel = document.createElement("aside");
+          panel.id = "simulator-debug-panel";
+          panel.setAttribute("aria-live", "polite");
+          panel.style.cssText = "position:fixed;right:0;bottom:0;left:0;z-index:2147483647;max-height:46vh;overflow:auto;margin:0;padding:10px;background:rgba(15,15,15,.94);color:#fff;font:11px/1.45 monospace;white-space:pre-wrap;word-break:break-all;text-align:left;";
+          panel.textContent = "診断情報を読み込み中…";
+          document.body.appendChild(panel);
+
+          window.addEventListener("error", (event) => {
+            recordError(`${event.message || "Script error"} @ ${event.filename || "unknown"}:${event.lineno || 0}:${event.colno || 0}`);
+          });
+          window.addEventListener("unhandledrejection", (event) => {
+            const reason = event.reason?.stack || event.reason?.message || event.reason || "Unknown rejection";
+            recordError(`Unhandled rejection: ${reason}`);
+          });
+        }
+
         const validTask = ["1", "2", "3", "4"].includes(params.get("task"));
         const validColor = ["pastel", "contrast"].includes(params.get("color"));
         const validYellow = ["0", "1"].includes(params.get("yellow"));
