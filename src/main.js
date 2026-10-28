@@ -5,12 +5,15 @@ import { resolveExperimentSettings } from "./config/experiment-config.js";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261028-diagnostic-1";
+const simulatorBuildId = "js-20261028-diagnostic-2";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
 const yellowFilterEnabled = runtimeExperimentSettings.isExperimentMode && runtimeExperimentSettings.yellowEnabled;
 const debugEnabled = new URLSearchParams(window.location.search).get("debug") === "1";
+const diagnosticVariants = new Set(["baseline", "panel-off", "category-static", "bottom-nav-nonfixed", "animation-off", "visual-wrapper"]);
+const requestedDiagnosticVariant = new URLSearchParams(window.location.search).get("diag") || "baseline";
+const diagnosticVariant = debugEnabled && diagnosticVariants.has(requestedDiagnosticVariant) ? requestedDiagnosticVariant : "baseline";
 const announcementInterval = 4500;
 const deliveryFee = 300;
 const loadingDuration = 250;
@@ -69,11 +72,20 @@ function diagnosticPatchMarkup(location) {
   return '<div class="diagnostic-color-patch diagnostic-color-patch-' + location + '" aria-label="黄変化診断パッチ ' + location + '"><span class="diagnostic-white">W</span><span class="diagnostic-gray">G</span><span class="diagnostic-black">B</span></div>';
 }
 
+function visualRoot() {
+  if (debugEnabled && diagnosticVariant === "visual-wrapper") {
+    return app.querySelector(".simulator-visual-root") || app;
+  }
+  return app;
+}
+
 function updateDebugPanel() {
   if (!debugEnabled) return;
   const panel = document.querySelector("#simulator-debug-panel");
   if (!panel) return;
   const appStyle = window.getComputedStyle(app);
+  const target = visualRoot();
+  const targetStyle = window.getComputedStyle(target);
   const rootStyle = window.getComputedStyle(document.documentElement);
   const cssBuildId = rootStyle.getPropertyValue("--simulator-css-build").trim().replace(/^['\"]|['\"]$/g, "") || "未取得";
   const standardFilter = appStyle.filter || "未取得";
@@ -81,6 +93,11 @@ function updateDebugPanel() {
   const svgFilter = document.querySelector("#lens-reference-20-70");
   const matrix = svgFilter?.querySelector("feColorMatrix");
   const errors = window.__simulatorDiagnostics?.errors || [];
+  const appRect = app.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const categoryTabsElement = app.querySelector(".category-tabs");
+  const categoryStyle = categoryTabsElement ? window.getComputedStyle(categoryTabsElement) : null;
+  const viewportHeight = window.visualViewport?.height || window.innerHeight;
   const values = [
     `JS build: ${simulatorBuildId}`,
     `CSS build: ${cssBuildId}`,
@@ -89,9 +106,21 @@ function updateDebugPanel() {
     `yellow: ${state.experiment.yellow ?? "null"}`,
     `valid experiment: ${state.experiment.isExperimentMode}`,
     `screen: ${state.screen}`,
+    `diagnostic variant: ${diagnosticVariant}`,
+    `viewport: ${window.innerWidth}x${Math.round(viewportHeight)} dpr=${window.devicePixelRatio}`,
+    `document scrollHeight: ${document.documentElement.scrollHeight}`,
+    `#app rect: ${Math.round(appRect.width)}x${Math.round(appRect.height)} top=${Math.round(appRect.top)}`,
+    `#app scroll/client: ${app.scrollHeight}/${app.clientHeight}`,
+    `filter target: ${target === app ? "#app" : ".simulator-visual-root"}`,
+    `target rect: ${Math.round(targetRect.width)}x${Math.round(targetRect.height)} top=${Math.round(targetRect.top)}`,
     `#app data-filter: ${app.dataset.visionFilter || "none"}`,
     `computed filter: ${standardFilter}`,
     `computed -webkit-filter: ${webkitFilter}`,
+    `target data-filter: ${target.dataset.visionFilter || "none"}`,
+    `target filter: ${targetStyle.filter || "未取得"}`,
+    `target -webkit-filter: ${targetStyle.webkitFilter || targetStyle.getPropertyValue("-webkit-filter") || "未取得"}`,
+    `category position: ${categoryStyle?.position || "not-rendered"}`,
+    `category background: ${categoryStyle?.backgroundColor || "not-rendered"}`,
     `SVG filter: ${svgFilter ? "present" : "missing"}`,
     `feColorMatrix: ${matrix ? "present" : "missing"}`,
     `JS errors: ${errors.length}`,
@@ -101,14 +130,20 @@ function updateDebugPanel() {
 }
 
 window.__renderSimulatorDiagnostics = updateDebugPanel;
+if (debugEnabled) {
+  window.addEventListener("scroll", updateDebugPanel, { passive: true });
+  window.addEventListener("resize", updateDebugPanel);
+}
 
 function syncVisionFilter() {
   delete app.dataset.visionFilter;
+  const wrapper = app.querySelector(".simulator-visual-root");
+  if (wrapper) delete wrapper.dataset.visionFilter;
   if (!yellowFilterEnabled) return;
   // WebKit can retain an unfiltered compositing layer when the filter is set
   // before dynamic screen content exists. Re-resolve it after each render.
   void app.offsetWidth;
-  app.dataset.visionFilter = "yellowed";
+  visualRoot().dataset.visionFilter = "yellowed";
 }
 
 function selectedStore() {
@@ -306,6 +341,13 @@ function screenScrollPosition(screen) {
 
 function runScreenTransition(targetScreen, direction, updateHistory) {
   if (isScreenTransitioning || isLoading) return;
+  if (debugEnabled && diagnosticVariant === "animation-off") {
+    if (updateHistory === "push") state.history.push(state.screen);
+    if (updateHistory === "pop") state.history.pop();
+    state.screen = targetScreen;
+    render();
+    return;
+  }
   const currentShell = app.querySelector(".phone-shell");
   if (!currentShell) return;
   const outgoingMarkup = currentShell.outerHTML;
@@ -317,7 +359,7 @@ function runScreenTransition(targetScreen, direction, updateHistory) {
   const incomingMarkup = '<div class="phone-shell"' + themeAttribute + '>' + renderScreen() + '</div>';
   const incomingScrollY = screenScrollPosition(targetScreen);
   isScreenTransitioning = true;
-  app.insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
+  visualRoot().insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
   syncVisionFilter();
   const transition = app.querySelector(".screen-transition");
   const outgoingPanel = transition.querySelector(".screen-transition-outgoing");
@@ -704,7 +746,10 @@ function setupAnnouncementCarousel() {
 
 function render() {
   stopAnnouncementCarousel();
-  app.innerHTML = '<div class="phone-shell"' + experimentThemeAttribute() + '>' + renderScreen() + '</div>' + diagnosticPatchMarkup("root");
+  const screenMarkup = '<div class="phone-shell"' + experimentThemeAttribute() + '>' + renderScreen() + '</div>' + diagnosticPatchMarkup("root");
+  app.innerHTML = debugEnabled && diagnosticVariant === "visual-wrapper"
+    ? '<div class="simulator-visual-root">' + screenMarkup + '</div>'
+    : screenMarkup;
   syncVisionFilter();
   restoreCategoryScroll();
   restoreScreenScroll();

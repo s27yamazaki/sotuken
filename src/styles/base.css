@@ -1,5 +1,5 @@
 :root {
-  --simulator-css-build: "css-20261028-diagnostic-1";
+  --simulator-css-build: "css-20261028-diagnostic-2";
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #282828;
   background: #e9e9e9;
@@ -13,7 +13,8 @@ html {
   background: #e9e9e9;
 }
 
-#app[data-vision-filter="yellowed"] {
+#app[data-vision-filter="yellowed"],
+.simulator-visual-root[data-vision-filter="yellowed"] {
   -webkit-filter: url("#lens-reference-20-70");
   filter: url("#lens-reference-20-70");
   isolation: isolate;
@@ -81,4 +82,17 @@ button {
   flex: 0 0 auto;
   align-self: center;
   margin-right: 8px;
+}
+
+.simulator-visual-root {
+  position: relative;
+  min-height: 100vh;
+}
+
+html[data-diagnostic-variant="category-static"] .category-tabs {
+  position: static;
+}
+
+html[data-diagnostic-variant="bottom-nav-nonfixed"] .bottom-nav {
+  position: absolute;
 }

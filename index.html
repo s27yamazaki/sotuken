@@ -23,8 +23,11 @@
       (() => {
         const params = new URLSearchParams(window.location.search);
         const debugEnabled = params.get("debug") === "1";
+        const diagnosticVariant = params.get("diag") || "baseline";
+        if (debugEnabled) document.documentElement.dataset.diagnosticVariant = diagnosticVariant;
         const diagnostics = {
           enabled: debugEnabled,
+          variant: diagnosticVariant,
           errors: [],
         };
         window.__simulatorDiagnostics = diagnostics;
@@ -39,7 +42,7 @@
           }
         };
 
-        if (debugEnabled) {
+        if (debugEnabled && diagnosticVariant !== "panel-off") {
           const panel = document.createElement("aside");
           panel.id = "simulator-debug-panel";
           panel.setAttribute("aria-live", "polite");
