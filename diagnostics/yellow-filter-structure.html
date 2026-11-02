@@ -40,11 +40,35 @@
         overflow-x: hidden;
         box-shadow: 0 0 28px rgba(0, 0, 0, 0.14);
       }
+      html[data-case="sticky"] .phone-shell {
+        overflow: visible;
+      }
+      html[data-case="sticky"] .diagnostic-intro {
+        display: none;
+      }
+      html[data-case="sticky"] .filter-target {
+        height: 100vh;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
       .test-header { padding: 18px; border-bottom: 1px solid #bbb; background: #fff; }
       .test-header h2 { margin: 0; font-size: 20px; }
       .test-tabs { display: flex; gap: 10px; padding: 12px; border-bottom: 1px solid #bbb; background: #fff; }
       .test-tabs span { padding: 8px; border: 1px solid #aaa; background: #fff; font-weight: 700; }
-      html[data-case="sticky"] .test-tabs { position: sticky; top: 0; z-index: 2; }
+      html[data-case="sticky"] .test-header {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        min-height: 66px;
+      }
+      html[data-case="sticky"] .test-tabs {
+        position: sticky;
+        top: 66px;
+        z-index: 2;
+      }
       .patches { display: grid; grid-template-columns: repeat(3, 1fr); height: 78px; border: 1px solid #111; }
       .patches div { display: grid; place-items: center; font-weight: 800; }
       .white { background: #fff; color: #000; }
@@ -84,7 +108,7 @@
         <nav class="test-tabs"><span>おすすめ</span><span>お弁当</span><span>単品</span></nav>
         <p class="patch-label">対象上端</p>
         <div class="patches"><div class="white">W</div><div class="gray">G</div><div class="black">B</div></div>
-        <div class="filler" aria-hidden="true"></div>
+        <div id="sticky-scroll-point" class="filler" aria-hidden="true"></div>
         <p class="patch-label">対象下端</p>
         <div class="patches"><div class="white">W</div><div class="gray">G</div><div class="black">B</div></div>
       </div>
@@ -100,7 +124,7 @@
           "tall-static": "short-static に対象の高さだけを追加。documentがスクロールを担当。",
           "tall-dynamic": "tall-static に、本体と同じinnerHTML再生成とフィルター再解決だけを追加。",
           "app-shell": "tall-dynamic に、本体相当のphone-shell寸法・overflow-x:hiddenだけを追加。",
-          "sticky": "app-shell に、カテゴリ領域のposition:stickyだけを追加。",
+          "sticky": "フィルター対象自身を縦スクロール要素にし、見出しをtop:0、カテゴリをtop:66pxへ固定。固定前後の変換を比較。",
           "tall-wide-region": "tall-static と同じ構造で、SVGフィルター領域だけを-10%/120%へ拡張。行列は同一。",
         };
         document.querySelector("#case-description").textContent = `case=${testCase}: ${descriptions[testCase]}`;
@@ -120,7 +144,7 @@
         const tabs = target.querySelector(".test-tabs");
         const tabStyle = getComputedStyle(tabs);
         document.querySelector("#structure-diagnostics").textContent = [
-          "page build: structure-20261102-1",
+          "page build: structure-20261102-3",
           `case: ${testCase}`,
           `viewport: ${innerWidth}x${innerHeight} dpr=${devicePixelRatio}`,
           `document scrollHeight: ${document.documentElement.scrollHeight}`,
@@ -129,10 +153,19 @@
           `computed filter: ${style.filter || "未取得"}`,
           `computed -webkit-filter: ${style.webkitFilter || style.getPropertyValue("-webkit-filter") || "未取得"}`,
           `tabs position: ${tabStyle.position}`,
+          `tabs top: ${tabStyle.top}`,
+          `shell overflow: ${getComputedStyle(target.querySelector(".phone-shell")).overflowX}/${getComputedStyle(target.querySelector(".phone-shell")).overflowY}`,
           `SVG exact: ${document.querySelector("#lens-reference-20-70-structure") ? "present" : "missing"}`,
           `SVG wide: ${document.querySelector("#lens-reference-20-70-structure-wide") ? "present" : "missing"}`,
           `user agent: ${navigator.userAgent}`,
         ].join("\n");
+
+        if (new URLSearchParams(location.search).get("autoscroll") === "1") {
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (testCase === "sticky") target.scrollTop = 520;
+            else window.scrollTo(0, 520);
+          }));
+        }
       })();
     </script>
   </body>
