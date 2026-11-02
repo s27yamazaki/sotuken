@@ -11,6 +11,7 @@
           "tall-static",
           "tall-dynamic",
           "app-shell",
+          "scroll-static",
           "sticky",
           "tall-wide-region",
         ]);
@@ -31,6 +32,7 @@
       html[data-case="tall-wide-region"] .filter-target { -webkit-filter: url("#lens-reference-20-70-structure-wide"); filter: url("#lens-reference-20-70-structure-wide"); }
       .phone-shell { background: #f6f6f6; }
       html[data-case="app-shell"] .phone-shell,
+      html[data-case="scroll-static"] .phone-shell,
       html[data-case="sticky"] .phone-shell {
         position: relative;
         width: min(100vw, 430px);
@@ -40,12 +42,15 @@
         overflow-x: hidden;
         box-shadow: 0 0 28px rgba(0, 0, 0, 0.14);
       }
+      html[data-case="scroll-static"] .phone-shell,
       html[data-case="sticky"] .phone-shell {
         overflow: visible;
       }
+      html[data-case="scroll-static"] .diagnostic-intro,
       html[data-case="sticky"] .diagnostic-intro {
         display: none;
       }
+      html[data-case="scroll-static"] .filter-target,
       html[data-case="sticky"] .filter-target {
         height: 100vh;
         overflow-x: hidden;
@@ -79,6 +84,7 @@
       html[data-case="tall-static"] .filler,
       html[data-case="tall-dynamic"] .filler,
       html[data-case="app-shell"] .filler,
+      html[data-case="scroll-static"] .filler,
       html[data-case="sticky"] .filler,
       html[data-case="tall-wide-region"] .filler { height: 2800px; }
       .diagnostic-output { padding: 12px; background: #111; color: #fff; font: 12px/1.5 monospace; white-space: pre-wrap; word-break: break-all; }
@@ -124,12 +130,13 @@
           "tall-static": "short-static に対象の高さだけを追加。documentがスクロールを担当。",
           "tall-dynamic": "tall-static に、本体と同じinnerHTML再生成とフィルター再解決だけを追加。",
           "app-shell": "tall-dynamic に、本体相当のphone-shell寸法・overflow-x:hiddenだけを追加。",
+          "scroll-static": "stickyケースと同じ高さ・内部スクロール・DOM・フィルター。見出しとカテゴリのpositionだけstatic。",
           "sticky": "フィルター対象自身を縦スクロール要素にし、見出しをtop:0、カテゴリをtop:66pxへ固定。固定前後の変換を比較。",
           "tall-wide-region": "tall-static と同じ構造で、SVGフィルター領域だけを-10%/120%へ拡張。行列は同一。",
         };
         document.querySelector("#case-description").textContent = `case=${testCase}: ${descriptions[testCase]}`;
 
-        if (["tall-dynamic", "app-shell", "sticky"].includes(testCase)) {
+        if (["tall-dynamic", "app-shell", "scroll-static", "sticky"].includes(testCase)) {
           const markup = target.innerHTML;
           target.innerHTML = markup;
           target.style.webkitFilter = "none";
@@ -144,7 +151,7 @@
         const tabs = target.querySelector(".test-tabs");
         const tabStyle = getComputedStyle(tabs);
         document.querySelector("#structure-diagnostics").textContent = [
-          "page build: structure-20261102-3",
+          "page build: structure-20261102-4",
           `case: ${testCase}`,
           `viewport: ${innerWidth}x${innerHeight} dpr=${devicePixelRatio}`,
           `document scrollHeight: ${document.documentElement.scrollHeight}`,
@@ -162,7 +169,7 @@
 
         if (new URLSearchParams(location.search).get("autoscroll") === "1") {
           requestAnimationFrame(() => requestAnimationFrame(() => {
-            if (testCase === "sticky") target.scrollTop = 520;
+            if (["scroll-static", "sticky"].includes(testCase)) target.scrollTop = 520;
             else window.scrollTo(0, 520);
           }));
         }
