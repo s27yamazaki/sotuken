@@ -1,5 +1,5 @@
 :root {
-  --simulator-css-build: "css-20261028-diagnostic-2";
+  --simulator-css-build: "css-20261102-separated-main-4";
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #282828;
   background: #e9e9e9;
@@ -13,7 +13,6 @@ html {
   background: #e9e9e9;
 }
 
-#app[data-vision-filter="yellowed"],
 .simulator-visual-root[data-vision-filter="yellowed"] {
   -webkit-filter: url("#lens-reference-20-70");
   filter: url("#lens-reference-20-70");
@@ -23,6 +22,7 @@ html {
 body {
   min-width: 320px;
   margin: 0;
+  overflow: hidden;
 }
 
 button {
@@ -30,7 +30,13 @@ button {
 }
 
 #app {
-  min-height: 100vh;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .visual-filter-definitions {
@@ -87,6 +93,29 @@ button {
 .simulator-visual-root {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.simulator-fixed-viewport {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  width: 100%;
+  height: 0;
+}
+
+.simulator-fixed-stage {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 100vh;
+  height: 100dvh;
+  pointer-events: none;
+}
+
+.simulator-fixed-stage > * {
+  pointer-events: auto;
 }
 
 html[data-diagnostic-variant="category-static"] .category-tabs {

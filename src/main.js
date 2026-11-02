@@ -5,7 +5,7 @@ import { resolveExperimentSettings } from "./config/experiment-config.js";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261028-diagnostic-2";
+const simulatorBuildId = "js-20261102-separated-main-4";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
@@ -25,6 +25,14 @@ let isLoading = false;
 let screenTransitionTimer = null;
 let isScreenTransitioning = false;
 let pendingConfirmation = null;
+
+function viewportScrollY() {
+  return app.scrollTop;
+}
+
+function scrollViewportTo(y) {
+  app.scrollTo(0, y);
+}
 
 const state = {
   experiment: runtimeExperimentSettings,
@@ -73,10 +81,20 @@ function diagnosticPatchMarkup(location) {
 }
 
 function visualRoot() {
-  if (debugEnabled && diagnosticVariant === "visual-wrapper") {
-    return app.querySelector(".simulator-visual-root") || app;
-  }
-  return app;
+  return app.querySelector(".simulator-visual-root") || app;
+}
+
+function fixedStage() {
+  return app.querySelector(".simulator-fixed-stage");
+}
+
+function moveFixedLayersToStage() {
+  const phoneShell = app.querySelector(".phone-shell");
+  const stage = fixedStage();
+  if (!phoneShell || !stage) return;
+  phoneShell.querySelectorAll(":scope > .bottom-nav, :scope > .order-bar, :scope > .bottom-action, :scope > .checkout-bar").forEach((element) => {
+    stage.appendChild(element);
+  });
 }
 
 function updateDebugPanel() {
@@ -131,7 +149,7 @@ function updateDebugPanel() {
 
 window.__renderSimulatorDiagnostics = updateDebugPanel;
 if (debugEnabled) {
-  window.addEventListener("scroll", updateDebugPanel, { passive: true });
+  app.addEventListener("scroll", updateDebugPanel, { passive: true });
   window.addEventListener("resize", updateDebugPanel);
 }
 
@@ -139,11 +157,7 @@ function syncVisionFilter() {
   delete app.dataset.visionFilter;
   const wrapper = app.querySelector(".simulator-visual-root");
   if (wrapper) delete wrapper.dataset.visionFilter;
-  if (!yellowFilterEnabled) return;
-  // WebKit can retain an unfiltered compositing layer when the filter is set
-  // before dynamic screen content exists. Re-resolve it after each render.
-  void app.offsetWidth;
-  visualRoot().dataset.visionFilter = "yellowed";
+  if (yellowFilterEnabled && wrapper) wrapper.dataset.visionFilter = "yellowed";
 }
 
 function selectedStore() {
@@ -351,7 +365,7 @@ function runScreenTransition(targetScreen, direction, updateHistory) {
   const currentShell = app.querySelector(".phone-shell");
   if (!currentShell) return;
   const outgoingMarkup = currentShell.outerHTML;
-  const outgoingScrollY = window.scrollY;
+  const outgoingScrollY = viewportScrollY();
   if (updateHistory === "push") state.history.push(state.screen);
   if (updateHistory === "pop") state.history.pop();
   state.screen = targetScreen;
@@ -359,7 +373,7 @@ function runScreenTransition(targetScreen, direction, updateHistory) {
   const incomingMarkup = '<div class="phone-shell"' + themeAttribute + '>' + renderScreen() + '</div>';
   const incomingScrollY = screenScrollPosition(targetScreen);
   isScreenTransitioning = true;
-  visualRoot().insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
+  fixedStage().insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
   syncVisionFilter();
   const transition = app.querySelector(".screen-transition");
   const outgoingPanel = transition.querySelector(".screen-transition-outgoing");
@@ -394,10 +408,11 @@ function backWithScreenTransition(direction = "back") {
 function showLoadingOverlay(onComplete) {
   if (isLoading) return;
   const phoneShell = app.querySelector(".phone-shell");
-  if (!phoneShell) return;
+  const stage = fixedStage();
+  if (!phoneShell || !stage) return;
   isLoading = true;
   phoneShell.setAttribute("aria-busy", "true");
-  phoneShell.insertAdjacentHTML("beforeend", '<div class="loading-overlay" role="status" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><span>読み込み中</span></div>');
+  stage.insertAdjacentHTML("beforeend", '<div class="loading-overlay" role="status" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><span>読み込み中</span></div>');
   syncVisionFilter();
   loadingTimer = window.setTimeout(() => {
     isLoading = false;
@@ -414,6 +429,18 @@ function setBackgroundInteractionDisabled(disabled) {
   const phoneShell = app.querySelector(".phone-shell");
   if (!phoneShell) return;
   Array.from(phoneShell.children).forEach((child) => {
+    if (child.classList.contains("simulator-fixed-viewport")) return;
+    if (disabled) {
+      child.setAttribute("inert", "");
+      child.setAttribute("aria-hidden", "true");
+    } else {
+      child.removeAttribute("inert");
+      child.removeAttribute("aria-hidden");
+    }
+  });
+  const stage = fixedStage();
+  if (!stage) return;
+  Array.from(stage.children).forEach((child) => {
     if (child.classList.contains("confirmation-modal")) return;
     if (disabled) {
       child.setAttribute("inert", "");
@@ -427,11 +454,11 @@ function setBackgroundInteractionDisabled(disabled) {
 
 function openQuantityConfirmation(type, index, trigger) {
   if (pendingConfirmation) return;
-  const phoneShell = app.querySelector(".phone-shell");
-  if (!phoneShell) return;
+  const stage = fixedStage();
+  if (!stage) return;
   pendingConfirmation = { type, index, trigger };
   const message = type === "decrease" ? "商品の個数を減らしますか？" : "商品の個数を増やしますか？";
-  phoneShell.insertAdjacentHTML("beforeend", confirmationDialogMarkup(message));
+  stage.insertAdjacentHTML("beforeend", confirmationDialogMarkup(message));
   syncVisionFilter();
   setBackgroundInteractionDisabled(true);
   app.querySelector('[data-action="accept-confirmation"]')?.focus();
@@ -680,14 +707,14 @@ function restoreCategoryScroll() {
 
 function restoreScreenScroll() {
   if (state.screen === "menu") {
-    window.scrollTo(0, state.menuScrollY);
+    scrollViewportTo(state.menuScrollY);
     return;
   }
   if (state.screen === "detail") {
-    window.scrollTo(0, state.detailScrollY);
+    scrollViewportTo(state.detailScrollY);
     return;
   }
-  window.scrollTo(0, 0);
+  scrollViewportTo(0);
 }
 
 function stopAnnouncementCarousel() {
@@ -746,10 +773,10 @@ function setupAnnouncementCarousel() {
 
 function render() {
   stopAnnouncementCarousel();
-  const screenMarkup = '<div class="phone-shell"' + experimentThemeAttribute() + '>' + renderScreen() + '</div>' + diagnosticPatchMarkup("root");
-  app.innerHTML = debugEnabled && diagnosticVariant === "visual-wrapper"
-    ? '<div class="simulator-visual-root">' + screenMarkup + '</div>'
-    : screenMarkup;
+  const fixedViewport = '<div class="simulator-fixed-viewport"><div class="simulator-fixed-stage"></div></div>';
+  const screenMarkup = '<div class="phone-shell"' + experimentThemeAttribute() + '>' + fixedViewport + renderScreen() + '</div>' + diagnosticPatchMarkup("root");
+  app.innerHTML = '<div class="simulator-visual-root">' + screenMarkup + '</div>';
+  moveFixedLayersToStage();
   syncVisionFilter();
   restoreCategoryScroll();
   restoreScreenScroll();
@@ -809,13 +836,13 @@ app.addEventListener("click", (event) => {
   if (action === "category") {
     const categoryTabsElement = button.closest(".category-tabs");
     state.categoryScrollLeft = categoryTabsElement ? categoryTabsElement.scrollLeft : state.categoryScrollLeft;
-    state.menuScrollY = window.scrollY;
+    state.menuScrollY = viewportScrollY();
     state.selectedCategoryId = id;
     render();
   }
   if (action === "select-item") {
     mistapTracker.openProduct(id);
-    state.menuScrollY = window.scrollY;
+    state.menuScrollY = viewportScrollY();
     state.selectedItemId = id;
     state.selectedOptions = defaultOptionsForItem(selectedItem());
     state.expandedOptionGroupId = null;
@@ -823,13 +850,13 @@ app.addEventListener("click", (event) => {
     goWithScreenTransition("detail");
   }
   if (action === "toggle-option") {
-    state.detailScrollY = window.scrollY;
+    state.detailScrollY = viewportScrollY();
     state.expandedOptionGroupId = state.expandedOptionGroupId === button.dataset.groupId ? null : button.dataset.groupId;
     render();
   }
   if (action === "select-option") {
     mistapTracker.selectOption(state.selectedItemId, button.dataset.groupId, id);
-    state.detailScrollY = window.scrollY;
+    state.detailScrollY = viewportScrollY();
     state.selectedOptions[button.dataset.groupId] = id;
     state.expandedOptionGroupId = null;
     render();

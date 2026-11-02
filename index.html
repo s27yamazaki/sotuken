@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mobile Order UI Simulator</title>
-    <link rel="stylesheet" href="./src/styles/base.css" />
-    <link rel="stylesheet" href="./src/styles/theme.css" />
+    <link rel="stylesheet" href="./src/styles/base.css?v=20261102-separated-main-4" />
+    <link rel="stylesheet" href="./src/styles/theme.css?v=20261102-separated-main-4" />
   </head>
   <body>
     <svg class="visual-filter-definitions" aria-hidden="true" focusable="false">
@@ -59,14 +59,8 @@
           });
         }
 
-        const validTask = ["1", "2", "3", "4"].includes(params.get("task"));
-        const validColor = ["pastel", "contrast"].includes(params.get("color"));
-        const validYellow = ["0", "1"].includes(params.get("yellow"));
-        if (validTask && validColor && validYellow && params.get("yellow") === "1") {
-          document.querySelector("#app").dataset.visionFilter = "yellowed";
-        }
       })();
     </script>
-    <script type="module" src="./src/main.js"></script>
+    <script type="module" src="./src/main.js?v=20261102-separated-main-4"></script>
   </body>
 </html>
