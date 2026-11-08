@@ -88,78 +88,6 @@
   }
 }
 
-.screen-transition {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  width: min(100vw, 430px);
-  margin: 0 auto;
-  overflow: hidden;
-  background: #f6f6f6;
-  touch-action: none;
-}
-
-.screen-transition-backdrop {
-  position: absolute;
-  inset: 0;
-  background: #f6f6f6;
-}
-
-.screen-transition-panel {
-  position: absolute;
-  inset: 0;
-  right: auto;
-  width: 100%;
-  overflow-x: hidden;
-  overflow-y: hidden;
-  overscroll-behavior: none;
-  scrollbar-width: none;
-  transition: left var(--screen-transition-duration) ease-out;
-}
-
-.screen-transition-panel::-webkit-scrollbar {
-  display: none;
-}
-
-.screen-transition-panel .phone-shell {
-  min-height: 100%;
-}
-
-.screen-transition-forward .screen-transition-outgoing,
-.screen-transition-back .screen-transition-outgoing {
-  z-index: 1;
-  left: 0;
-}
-
-.screen-transition-forward .screen-transition-incoming {
-  z-index: 2;
-  left: 100%;
-  box-shadow: -8px 0 20px rgba(0, 0, 0, 0.12);
-}
-
-.screen-transition-forward.is-running .screen-transition-outgoing {
-  left: -28%;
-}
-
-.screen-transition-forward.is-running .screen-transition-incoming,
-.screen-transition-back.is-running .screen-transition-incoming {
-  left: 0;
-}
-
-.screen-transition-back .screen-transition-incoming {
-  left: -28%;
-}
-
-.screen-transition-back .screen-transition-outgoing {
-  z-index: 2;
-  left: 0;
-  box-shadow: -8px 0 20px rgba(0, 0, 0, 0.12);
-}
-
-.screen-transition-back.is-running .screen-transition-outgoing {
-  left: 100%;
-}
-
 .status-bar {
   display: flex;
   justify-content: space-between;
@@ -1644,8 +1572,7 @@
 }
 
 /* Experiment color schemes use the same semantic roles and UI coverage. */
-.phone-shell[data-color-scheme="pastel"],
-.screen-transition[data-color-scheme="pastel"] {
+.phone-shell[data-color-scheme="pastel"] {
   --theme-page: #fff7f2;
   --theme-surface: #fff;
   --theme-text: #2b211d;
@@ -1675,8 +1602,7 @@
   --theme-shadow: rgba(75, 48, 36, 0.13);
 }
 
-.phone-shell[data-color-scheme="contrast"],
-.screen-transition[data-color-scheme="contrast"] {
+.phone-shell[data-color-scheme="contrast"] {
   --theme-page: #f2f2f2;
   --theme-surface: #fff;
   --theme-text: #111;
@@ -1708,14 +1634,6 @@
 
 .phone-shell[data-color-scheme] {
   color: var(--theme-text);
-  background: var(--theme-page);
-}
-
-.screen-transition[data-color-scheme] {
-  background: var(--theme-page);
-}
-
-.screen-transition[data-color-scheme] .screen-transition-backdrop {
   background: var(--theme-page);
 }
 
@@ -1986,7 +1904,6 @@
 }
 
 .phone-shell .simulator-overlay-stage > .loading-overlay,
-.phone-shell .simulator-overlay-stage > .confirmation-modal,
-.phone-shell .simulator-overlay-stage > .screen-transition {
+.phone-shell .simulator-overlay-stage > .confirmation-modal {
   position: absolute;
 }

@@ -5,25 +5,22 @@ import { resolveExperimentSettings } from "./config/experiment-config.js";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261109-transition-panels-1";
+const simulatorBuildId = "js-20261109-product-loading-transition-1";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
 const yellowFilterEnabled = runtimeExperimentSettings.isExperimentMode && runtimeExperimentSettings.yellowEnabled;
 const debugEnabled = new URLSearchParams(window.location.search).get("debug") === "1";
-const diagnosticVariants = new Set(["baseline", "panel-off", "category-static", "bottom-nav-nonfixed", "animation-off", "visual-wrapper"]);
+const diagnosticVariants = new Set(["baseline", "panel-off", "category-static", "bottom-nav-nonfixed", "visual-wrapper"]);
 const requestedDiagnosticVariant = new URLSearchParams(window.location.search).get("diag") || "baseline";
 const diagnosticVariant = debugEnabled && diagnosticVariants.has(requestedDiagnosticVariant) ? requestedDiagnosticVariant : "baseline";
 const announcementInterval = 4500;
 const deliveryFee = 300;
 const loadingDuration = 250;
-const screenTransitionDuration = 250;
 let announcementTimer = null;
 let announcementScrollTimer = null;
 let loadingTimer = null;
 let isLoading = false;
-let screenTransitionTimer = null;
-let isScreenTransitioning = false;
 let pendingConfirmation = null;
 
 function viewportScrollY() {
@@ -201,10 +198,7 @@ function syncVisionFilter() {
   app.querySelectorAll(".simulator-filter-surface").forEach((surface) => delete surface.dataset.visionFilter);
   if (!yellowFilterEnabled) return;
   app.querySelectorAll(".simulator-filter-surface").forEach((surface) => {
-    const transition = surface.closest(".screen-transition");
-    if (!transition || surface.matches(".screen-transition-backdrop, .screen-transition-panel")) {
-      surface.dataset.visionFilter = "yellowed";
-    }
+    surface.dataset.visionFilter = "yellowed";
   });
 }
 
@@ -393,65 +387,6 @@ function returnToCart() {
   if (cartHistoryIndex >= 0) state.history = state.history.slice(0, cartHistoryIndex);
   state.screen = "cart";
   render();
-}
-
-function screenScrollPosition(screen) {
-  if (screen === "menu") return state.menuScrollY;
-  if (screen === "detail") return state.detailScrollY;
-  return 0;
-}
-
-function runScreenTransition(targetScreen, direction, updateHistory) {
-  if (isScreenTransitioning || isLoading) return;
-  if (debugEnabled && diagnosticVariant === "animation-off") {
-    if (updateHistory === "push") state.history.push(state.screen);
-    if (updateHistory === "pop") state.history.pop();
-    state.screen = targetScreen;
-    render();
-    return;
-  }
-  const currentShell = app.querySelector(".phone-shell");
-  if (!currentShell) return;
-  const outgoingMarkup = currentShell.outerHTML;
-  const outgoingScrollY = viewportScrollY();
-  if (updateHistory === "push") state.history.push(state.screen);
-  if (updateHistory === "pop") state.history.pop();
-  state.screen = targetScreen;
-  const themeAttribute = experimentThemeAttribute();
-  const incomingMarkup = screenShellMarkup();
-  const incomingScrollY = screenScrollPosition(targetScreen);
-  isScreenTransitioning = true;
-  const transitionFilterAttribute = yellowFilterEnabled ? ' data-vision-filter="yellowed"' : "";
-  overlayStage().insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-backdrop simulator-filter-surface"' + transitionFilterAttribute + '></div><div class="screen-transition-panel simulator-filter-surface screen-transition-outgoing"' + transitionFilterAttribute + '>' + outgoingMarkup + '</div><div class="screen-transition-panel simulator-filter-surface screen-transition-incoming"' + transitionFilterAttribute + '>' + incomingMarkup + '</div></div>');
-  syncVisionFilter();
-  const transition = app.querySelector(".screen-transition");
-  const outgoingPanel = transition.querySelector(".screen-transition-outgoing");
-  const incomingPanel = transition.querySelector(".screen-transition-incoming");
-  outgoingPanel.querySelector(".simulator-scroll-region").scrollTop = outgoingScrollY;
-  incomingPanel.querySelector(".simulator-scroll-region").scrollTop = incomingScrollY;
-  window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(() => transition.classList.add("is-running"));
-  });
-  let finished = false;
-  const finishTransition = () => {
-    if (finished) return;
-    finished = true;
-    if (screenTransitionTimer) window.clearTimeout(screenTransitionTimer);
-    screenTransitionTimer = null;
-    isScreenTransitioning = false;
-    render();
-  };
-  incomingPanel.addEventListener("transitionend", finishTransition, { once: true });
-  screenTransitionTimer = window.setTimeout(finishTransition, screenTransitionDuration + 80);
-}
-
-function goWithScreenTransition(screen, direction = "forward") {
-  runScreenTransition(screen, direction, "push");
-}
-
-function backWithScreenTransition(direction = "back") {
-  const targetScreen = state.history[state.history.length - 1] || "home";
-  runScreenTransition(targetScreen, direction, "pop");
 }
 
 function showLoadingOverlay(onComplete) {
@@ -832,7 +767,7 @@ function render() {
 }
 
 app.addEventListener("click", (event) => {
-  if (isLoading || isScreenTransitioning) return;
+  if (isLoading) return;
   const button = event.target.closest("button, a[href]");
   if (!button || button.disabled) return;
   const isLink = button.matches("a[href]");
@@ -846,7 +781,7 @@ app.addEventListener("click", (event) => {
   mistapTracker.trackTap(target, action === "back", { screen: state.screen });
   if (isLink) return;
   if (action === "back") {
-    if (state.screen === "detail" && state.history[state.history.length - 1] === "menu") backWithScreenTransition();
+    if (state.screen === "detail" && state.history[state.history.length - 1] === "menu") showLoadingOverlay(back);
     else back();
   }
   if (action === "home") { state.cartItems = []; state.screen = "home"; state.history = []; render(); }
@@ -894,7 +829,7 @@ app.addEventListener("click", (event) => {
     state.selectedOptions = defaultOptionsForItem(selectedItem());
     state.expandedOptionGroupId = null;
     state.detailScrollY = 0;
-    goWithScreenTransition("detail");
+    showLoadingOverlay(() => go("detail"));
   }
   if (action === "toggle-option") {
     state.detailScrollY = viewportScrollY();
@@ -975,7 +910,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 app.addEventListener("input", (event) => {
-  if (isLoading || isScreenTransitioning) return;
+  if (isLoading) return;
   if (event.target.name === "delivery-address") state.deliveryAddress = event.target.value;
   if (event.target.dataset.phoneIndex !== undefined) {
     const index = Number(event.target.dataset.phoneIndex);
