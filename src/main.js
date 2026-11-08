@@ -5,7 +5,7 @@ import { resolveExperimentSettings } from "./config/experiment-config.js";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261102-separated-main-4";
+const simulatorBuildId = "js-20261109-unified-chrome-2";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
@@ -27,11 +27,11 @@ let isScreenTransitioning = false;
 let pendingConfirmation = null;
 
 function viewportScrollY() {
-  return app.scrollTop;
+  return app.querySelector(".simulator-scroll-region")?.scrollTop || 0;
 }
 
 function scrollViewportTo(y) {
-  app.scrollTo(0, y);
+  app.querySelector(".simulator-scroll-region")?.scrollTo(0, y);
 }
 
 const state = {
@@ -84,17 +84,31 @@ function visualRoot() {
   return app.querySelector(".simulator-visual-root") || app;
 }
 
-function fixedStage() {
-  return app.querySelector(".simulator-fixed-stage");
+function overlayStage() {
+  return app.querySelector(".simulator-overlay-stage");
 }
 
-function moveFixedLayersToStage() {
-  const phoneShell = app.querySelector(".phone-shell");
-  const stage = fixedStage();
-  if (!phoneShell || !stage) return;
-  phoneShell.querySelectorAll(":scope > .bottom-nav, :scope > .order-bar, :scope > .bottom-action, :scope > .checkout-bar").forEach((element) => {
-    stage.appendChild(element);
+function arrangePhoneShell(phoneShell) {
+  const topBarElement = phoneShell.querySelector(":scope > .top-bar");
+  const categoryTabsElement = phoneShell.querySelector(":scope > .category-tabs");
+  const bottomElements = Array.from(phoneShell.querySelectorAll(":scope > .bottom-nav, :scope > .order-bar, :scope > .bottom-action, :scope > .checkout-bar"));
+  const reserved = new Set([topBarElement, categoryTabsElement, ...bottomElements].filter(Boolean));
+  const scrollRegion = document.createElement("div");
+  scrollRegion.className = "simulator-scroll-region";
+  Array.from(phoneShell.children).forEach((child) => {
+    if (!reserved.has(child)) scrollRegion.appendChild(child);
   });
+  const stage = document.createElement("div");
+  stage.className = "simulator-overlay-stage";
+  phoneShell.replaceChildren(...[topBarElement, categoryTabsElement, scrollRegion, ...bottomElements, stage].filter(Boolean));
+}
+
+function screenShellMarkup(markup = renderScreen()) {
+  const container = document.createElement("div");
+  container.innerHTML = '<div class="phone-shell"' + experimentThemeAttribute() + '>' + markup + '</div>';
+  const phoneShell = container.firstElementChild;
+  arrangePhoneShell(phoneShell);
+  return phoneShell.outerHTML;
 }
 
 function updateDebugPanel() {
@@ -149,7 +163,7 @@ function updateDebugPanel() {
 
 window.__renderSimulatorDiagnostics = updateDebugPanel;
 if (debugEnabled) {
-  app.addEventListener("scroll", updateDebugPanel, { passive: true });
+  app.addEventListener("scroll", updateDebugPanel, { passive: true, capture: true });
   window.addEventListener("resize", updateDebugPanel);
 }
 
@@ -370,16 +384,16 @@ function runScreenTransition(targetScreen, direction, updateHistory) {
   if (updateHistory === "pop") state.history.pop();
   state.screen = targetScreen;
   const themeAttribute = experimentThemeAttribute();
-  const incomingMarkup = '<div class="phone-shell"' + themeAttribute + '>' + renderScreen() + '</div>';
+  const incomingMarkup = screenShellMarkup();
   const incomingScrollY = screenScrollPosition(targetScreen);
   isScreenTransitioning = true;
-  fixedStage().insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
+  overlayStage().insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
   syncVisionFilter();
   const transition = app.querySelector(".screen-transition");
   const outgoingPanel = transition.querySelector(".screen-transition-outgoing");
   const incomingPanel = transition.querySelector(".screen-transition-incoming");
-  outgoingPanel.scrollTop = outgoingScrollY;
-  incomingPanel.scrollTop = incomingScrollY;
+  outgoingPanel.querySelector(".simulator-scroll-region").scrollTop = outgoingScrollY;
+  incomingPanel.querySelector(".simulator-scroll-region").scrollTop = incomingScrollY;
   window.requestAnimationFrame(() => {
     window.requestAnimationFrame(() => transition.classList.add("is-running"));
   });
@@ -408,7 +422,7 @@ function backWithScreenTransition(direction = "back") {
 function showLoadingOverlay(onComplete) {
   if (isLoading) return;
   const phoneShell = app.querySelector(".phone-shell");
-  const stage = fixedStage();
+  const stage = overlayStage();
   if (!phoneShell || !stage) return;
   isLoading = true;
   phoneShell.setAttribute("aria-busy", "true");
@@ -429,7 +443,7 @@ function setBackgroundInteractionDisabled(disabled) {
   const phoneShell = app.querySelector(".phone-shell");
   if (!phoneShell) return;
   Array.from(phoneShell.children).forEach((child) => {
-    if (child.classList.contains("simulator-fixed-viewport")) return;
+    if (child.classList.contains("simulator-overlay-stage")) return;
     if (disabled) {
       child.setAttribute("inert", "");
       child.setAttribute("aria-hidden", "true");
@@ -438,7 +452,7 @@ function setBackgroundInteractionDisabled(disabled) {
       child.removeAttribute("aria-hidden");
     }
   });
-  const stage = fixedStage();
+  const stage = overlayStage();
   if (!stage) return;
   Array.from(stage.children).forEach((child) => {
     if (child.classList.contains("confirmation-modal")) return;
@@ -454,7 +468,7 @@ function setBackgroundInteractionDisabled(disabled) {
 
 function openQuantityConfirmation(type, index, trigger) {
   if (pendingConfirmation) return;
-  const stage = fixedStage();
+  const stage = overlayStage();
   if (!stage) return;
   pendingConfirmation = { type, index, trigger };
   const message = type === "decrease" ? "商品の個数を減らしますか？" : "商品の個数を増やしますか？";
@@ -773,10 +787,8 @@ function setupAnnouncementCarousel() {
 
 function render() {
   stopAnnouncementCarousel();
-  const fixedViewport = '<div class="simulator-fixed-viewport"><div class="simulator-fixed-stage"></div></div>';
-  const screenMarkup = '<div class="phone-shell"' + experimentThemeAttribute() + '>' + fixedViewport + renderScreen() + '</div>' + diagnosticPatchMarkup("root");
+  const screenMarkup = screenShellMarkup() + diagnosticPatchMarkup("root");
   app.innerHTML = '<div class="simulator-visual-root">' + screenMarkup + '</div>';
-  moveFixedLayersToStage();
   syncVisionFilter();
   restoreCategoryScroll();
   restoreScreenScroll();

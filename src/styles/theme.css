@@ -1,9 +1,13 @@
 ﻿.phone-shell {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: min(100vw, 430px);
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   margin: 0 auto;
-  padding-bottom: 92px;
+  padding-bottom: 0;
   overflow-x: clip;
   background: #f6f6f6;
   box-shadow: 0 0 28px rgba(0, 0, 0, 0.14);
@@ -101,7 +105,7 @@
   right: auto;
   width: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   overscroll-behavior: none;
   scrollbar-width: none;
   transition: left var(--screen-transition-duration) ease-out;
@@ -162,8 +166,8 @@
 }
 
 .top-bar {
-  position: sticky;
-  top: 0;
+  position: static;
+  flex: 0 0 auto;
   z-index: 10;
   display: grid;
   grid-template-columns: 52px 1fr 52px;
@@ -686,14 +690,19 @@
 }
 
 .category-tabs {
-  position: sticky;
-  top: 110px;
+  position: static;
+  flex: 0 0 auto;
   z-index: 8;
   display: flex;
   gap: 24px;
   overflow-x: auto;
   border-bottom: 1px solid #ddd;
   background: #fff;
+  scrollbar-width: none;
+}
+
+.category-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .category-tabs button {
@@ -1894,19 +1903,25 @@
   box-shadow: 0 2px 10px var(--theme-shadow);
 }
 
-.phone-shell .simulator-fixed-stage > .loading-overlay,
-.phone-shell .simulator-fixed-stage > .confirmation-modal,
-.phone-shell .simulator-fixed-stage > .screen-transition,
-.phone-shell .simulator-fixed-stage > .bottom-nav,
-.phone-shell .simulator-fixed-stage > .order-bar,
-.phone-shell .simulator-fixed-stage > .bottom-action,
-.phone-shell .simulator-fixed-stage > .checkout-bar {
-  position: absolute;
+.simulator-scroll-region {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
-.screen-transition-panel .bottom-nav,
-.screen-transition-panel .order-bar,
-.screen-transition-panel .bottom-action,
-.screen-transition-panel .checkout-bar {
+.phone-shell > .bottom-nav,
+.phone-shell > .order-bar,
+.phone-shell > .bottom-action,
+.phone-shell > .checkout-bar {
+  position: static;
+  flex: 0 0 auto;
+}
+
+.phone-shell .simulator-overlay-stage > .loading-overlay,
+.phone-shell .simulator-overlay-stage > .confirmation-modal,
+.phone-shell .simulator-overlay-stage > .screen-transition {
   position: absolute;
 }

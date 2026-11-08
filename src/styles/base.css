@@ -1,5 +1,5 @@
 :root {
-  --simulator-css-build: "css-20261102-separated-main-4";
+  --simulator-css-build: "css-20261109-unified-chrome-2";
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #282828;
   background: #e9e9e9;
@@ -34,7 +34,7 @@ button {
   height: 100vh;
   height: 100dvh;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 }
@@ -92,29 +92,18 @@ button {
 
 .simulator-visual-root {
   position: relative;
-  min-height: 100vh;
-  min-height: 100dvh;
-}
-
-.simulator-fixed-viewport {
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  width: 100%;
-  height: 0;
-}
-
-.simulator-fixed-stage {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
   height: 100vh;
   height: 100dvh;
+}
+
+.simulator-overlay-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
   pointer-events: none;
 }
 
-.simulator-fixed-stage > * {
+.simulator-overlay-stage > * {
   pointer-events: auto;
 }
 
