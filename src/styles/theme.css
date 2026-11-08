@@ -99,6 +99,12 @@
   touch-action: none;
 }
 
+.screen-transition-backdrop {
+  position: absolute;
+  inset: 0;
+  background: #f6f6f6;
+}
+
 .screen-transition-panel {
   position: absolute;
   inset: 0;
@@ -121,6 +127,7 @@
 
 .screen-transition-forward .screen-transition-outgoing,
 .screen-transition-back .screen-transition-outgoing {
+  z-index: 1;
   left: 0;
 }
 
@@ -1705,6 +1712,10 @@
 }
 
 .screen-transition[data-color-scheme] {
+  background: var(--theme-page);
+}
+
+.screen-transition[data-color-scheme] .screen-transition-backdrop {
   background: var(--theme-page);
 }
 

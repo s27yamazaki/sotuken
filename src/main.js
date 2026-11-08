@@ -5,7 +5,7 @@ import { resolveExperimentSettings } from "./config/experiment-config.js";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261109-scroll-edge-backdrop-1";
+const simulatorBuildId = "js-20261109-transition-panels-1";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
@@ -201,10 +201,10 @@ function syncVisionFilter() {
   app.querySelectorAll(".simulator-filter-surface").forEach((surface) => delete surface.dataset.visionFilter);
   if (!yellowFilterEnabled) return;
   app.querySelectorAll(".simulator-filter-surface").forEach((surface) => {
-    if (!surface.closest(".screen-transition")) surface.dataset.visionFilter = "yellowed";
-  });
-  app.querySelectorAll(".screen-transition").forEach((transition) => {
-    transition.dataset.visionFilter = "yellowed";
+    const transition = surface.closest(".screen-transition");
+    if (!transition || surface.matches(".screen-transition-backdrop, .screen-transition-panel")) {
+      surface.dataset.visionFilter = "yellowed";
+    }
   });
 }
 
@@ -421,7 +421,8 @@ function runScreenTransition(targetScreen, direction, updateHistory) {
   const incomingMarkup = screenShellMarkup();
   const incomingScrollY = screenScrollPosition(targetScreen);
   isScreenTransitioning = true;
-  overlayStage().insertAdjacentHTML("beforeend", '<div class="screen-transition simulator-filter-surface screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
+  const transitionFilterAttribute = yellowFilterEnabled ? ' data-vision-filter="yellowed"' : "";
+  overlayStage().insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-backdrop simulator-filter-surface"' + transitionFilterAttribute + '></div><div class="screen-transition-panel simulator-filter-surface screen-transition-outgoing"' + transitionFilterAttribute + '>' + outgoingMarkup + '</div><div class="screen-transition-panel simulator-filter-surface screen-transition-incoming"' + transitionFilterAttribute + '>' + incomingMarkup + '</div></div>');
   syncVisionFilter();
   const transition = app.querySelector(".screen-transition");
   const outgoingPanel = transition.querySelector(".screen-transition-outgoing");
