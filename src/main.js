@@ -5,7 +5,7 @@ import { resolveExperimentSettings } from "./config/experiment-config.js";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261109-unified-chrome-2";
+const simulatorBuildId = "js-20261109-safari-surfaces-1";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
@@ -95,12 +95,26 @@ function arrangePhoneShell(phoneShell) {
   const reserved = new Set([topBarElement, categoryTabsElement, ...bottomElements].filter(Boolean));
   const scrollRegion = document.createElement("div");
   scrollRegion.className = "simulator-scroll-region";
+  const scrollContent = document.createElement("div");
+  scrollContent.className = "simulator-scroll-content simulator-filter-surface";
   Array.from(phoneShell.children).forEach((child) => {
-    if (!reserved.has(child)) scrollRegion.appendChild(child);
+    if (!reserved.has(child)) scrollContent.appendChild(child);
   });
+  scrollRegion.appendChild(scrollContent);
+  if (topBarElement) topBarElement.classList.add("simulator-filter-surface");
+  let categoryViewport = null;
+  if (categoryTabsElement) {
+    categoryViewport = document.createElement("div");
+    categoryViewport.className = "category-tabs-viewport";
+    const categorySurface = document.createElement("div");
+    categorySurface.className = "category-tabs-surface simulator-filter-surface";
+    categorySurface.appendChild(categoryTabsElement);
+    categoryViewport.appendChild(categorySurface);
+  }
+  bottomElements.forEach((element) => element.classList.add("simulator-filter-surface"));
   const stage = document.createElement("div");
   stage.className = "simulator-overlay-stage";
-  phoneShell.replaceChildren(...[topBarElement, categoryTabsElement, scrollRegion, ...bottomElements, stage].filter(Boolean));
+  phoneShell.replaceChildren(...[topBarElement, categoryViewport, scrollRegion, ...bottomElements, stage].filter(Boolean));
 }
 
 function screenShellMarkup(markup = renderScreen()) {
@@ -129,6 +143,8 @@ function updateDebugPanel() {
   const targetRect = target.getBoundingClientRect();
   const categoryTabsElement = app.querySelector(".category-tabs");
   const categoryStyle = categoryTabsElement ? window.getComputedStyle(categoryTabsElement) : null;
+  const filterSurfaces = Array.from(app.querySelectorAll(".simulator-filter-surface"));
+  const activeFilterSurfaces = filterSurfaces.filter((surface) => surface.dataset.visionFilter === "yellowed");
   const viewportHeight = window.visualViewport?.height || window.innerHeight;
   const values = [
     `JS build: ${simulatorBuildId}`,
@@ -153,6 +169,7 @@ function updateDebugPanel() {
     `target -webkit-filter: ${targetStyle.webkitFilter || targetStyle.getPropertyValue("-webkit-filter") || "未取得"}`,
     `category position: ${categoryStyle?.position || "not-rendered"}`,
     `category background: ${categoryStyle?.backgroundColor || "not-rendered"}`,
+    `filter surfaces: ${activeFilterSurfaces.length}/${filterSurfaces.length}`,
     `SVG filter: ${svgFilter ? "present" : "missing"}`,
     `feColorMatrix: ${matrix ? "present" : "missing"}`,
     `JS errors: ${errors.length}`,
@@ -171,7 +188,14 @@ function syncVisionFilter() {
   delete app.dataset.visionFilter;
   const wrapper = app.querySelector(".simulator-visual-root");
   if (wrapper) delete wrapper.dataset.visionFilter;
-  if (yellowFilterEnabled && wrapper) wrapper.dataset.visionFilter = "yellowed";
+  app.querySelectorAll(".simulator-filter-surface").forEach((surface) => delete surface.dataset.visionFilter);
+  if (!yellowFilterEnabled) return;
+  app.querySelectorAll(".simulator-filter-surface").forEach((surface) => {
+    if (!surface.closest(".screen-transition")) surface.dataset.visionFilter = "yellowed";
+  });
+  app.querySelectorAll(".screen-transition").forEach((transition) => {
+    transition.dataset.visionFilter = "yellowed";
+  });
 }
 
 function selectedStore() {
@@ -387,7 +411,7 @@ function runScreenTransition(targetScreen, direction, updateHistory) {
   const incomingMarkup = screenShellMarkup();
   const incomingScrollY = screenScrollPosition(targetScreen);
   isScreenTransitioning = true;
-  overlayStage().insertAdjacentHTML("beforeend", '<div class="screen-transition screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
+  overlayStage().insertAdjacentHTML("beforeend", '<div class="screen-transition simulator-filter-surface screen-transition-' + direction + '"' + themeAttribute + ' style="--screen-transition-duration: ' + screenTransitionDuration + 'ms" aria-hidden="true"><div class="screen-transition-panel screen-transition-outgoing">' + outgoingMarkup + '</div><div class="screen-transition-panel screen-transition-incoming">' + incomingMarkup + '</div></div>');
   syncVisionFilter();
   const transition = app.querySelector(".screen-transition");
   const outgoingPanel = transition.querySelector(".screen-transition-outgoing");
@@ -426,7 +450,7 @@ function showLoadingOverlay(onComplete) {
   if (!phoneShell || !stage) return;
   isLoading = true;
   phoneShell.setAttribute("aria-busy", "true");
-  stage.insertAdjacentHTML("beforeend", '<div class="loading-overlay" role="status" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><span>読み込み中</span></div>');
+  stage.insertAdjacentHTML("beforeend", '<div class="loading-overlay simulator-filter-surface" role="status" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><span>読み込み中</span></div>');
   syncVisionFilter();
   loadingTimer = window.setTimeout(() => {
     isLoading = false;
@@ -436,7 +460,7 @@ function showLoadingOverlay(onComplete) {
 }
 
 function confirmationDialogMarkup(message) {
-  return '<div class="confirmation-modal" role="presentation"><section class="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmation-title" aria-describedby="confirmation-message"><h2 id="confirmation-title">確認</h2><p id="confirmation-message">' + message + '</p><div class="confirmation-dialog-actions"><button class="outline" data-action="cancel-confirmation">キャンセル</button><button class="primary" data-action="accept-confirmation">確定</button></div></section></div>';
+  return '<div class="confirmation-modal simulator-filter-surface" role="presentation"><section class="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmation-title" aria-describedby="confirmation-message"><h2 id="confirmation-title">確認</h2><p id="confirmation-message">' + message + '</p><div class="confirmation-dialog-actions"><button class="outline" data-action="cancel-confirmation">キャンセル</button><button class="primary" data-action="accept-confirmation">確定</button></div></section></div>';
 }
 
 function setBackgroundInteractionDisabled(disabled) {
@@ -714,7 +738,7 @@ function renderScreen() {
 
 function restoreCategoryScroll() {
   if (state.screen !== "menu") return;
-  const categoryTabsElement = document.querySelector(".category-tabs");
+  const categoryTabsElement = document.querySelector(".category-tabs-viewport");
   if (!categoryTabsElement) return;
   categoryTabsElement.scrollLeft = state.categoryScrollLeft;
 }
@@ -846,7 +870,7 @@ app.addEventListener("click", (event) => {
     });
   }
   if (action === "category") {
-    const categoryTabsElement = button.closest(".category-tabs");
+    const categoryTabsElement = button.closest(".category-tabs-viewport");
     state.categoryScrollLeft = categoryTabsElement ? categoryTabsElement.scrollLeft : state.categoryScrollLeft;
     state.menuScrollY = viewportScrollY();
     state.selectedCategoryId = id;
