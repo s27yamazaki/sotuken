@@ -134,7 +134,7 @@ export const menuConfig = {
     { id: "croquette", category: "single", name: "コロッケ", price: 170, image: "./assets/images/croquette.png", description: "なめらかで、クリーミーな、当店オリジナルのプレミアムなポテトコロッケです。", hasDetail: true, optionGroupIds: ["croquette-sauce"] },
     { id: "iso-croquette", category: "single", name: "磯コロッケ", price: 180, image: "./assets/images/iso-croquette.png", description: "海苔の磯の香りをイメージして青のりが入った、クリーミーで、磯の香のプレミアムなポテトコロッケです。", hasDetail: true, optionGroupIds: ["croquette-sauce"] },
     { id: "ume-croquette", category: "single", name: "梅コロッケ", price: 180, image: "./assets/images/ume-croquette.png", description: "梅肉が入った、クリーミーで、梅の香のプレミアムなポテトコロッケです。", hasDetail: true, optionGroupIds: ["croquette-sauce"] },
-    { id: "croquette-tasting-set", category: "single", name: "コロッケ3種食べ比べセット", price: 500, image: "./assets/images/no-image.jpg", description: "プレーンコロッケ、磯コロッケ、梅コロッケの食べ比べセットです。", recommended: true, hasDetail: true },
+    { id: "croquette-tasting-set", category: "single", name: "揚げ物食べ比べセット", price: 640, image: "./assets/images/fried-food-tasting-set.png", description: "コロッケ3種とからあげの食べ比べセットです", recommended: true, hasDetail: true },
     { id: "root-vegetable-tonjiru", category: "single", name: "根菜と里芋の豚汁", price: 190, image: "./assets/images/tonziru.png", description: "ホットする美味しさの豚汁です。", hasDetail: true },
     { id: "tea", category: "single", name: "お茶", price: 120, image: "./assets/images/tea.png", description: "緑茶350ml", hasDetail: true },
     { id: "frozen-croquette", category: "single", name: "持ち帰り用冷凍コロッケ", price: 850, image: "./assets/images/frozen-croquette.png", description: "当店で販売しているコロッケをご自宅で召し上がっていただけます。", recommended: true, hasDetail: true, optionGroupIds: ["frozen-croquette-type"] },
