@@ -5,7 +5,7 @@ import { resolveExperimentSettings } from "./config/experiment-config.js";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261109-safari-surfaces-1";
+const simulatorBuildId = "js-20261109-scroll-edge-backdrop-1";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
@@ -93,6 +93,10 @@ function arrangePhoneShell(phoneShell) {
   const categoryTabsElement = phoneShell.querySelector(":scope > .category-tabs");
   const bottomElements = Array.from(phoneShell.querySelectorAll(":scope > .bottom-nav, :scope > .order-bar, :scope > .bottom-action, :scope > .checkout-bar"));
   const reserved = new Set([topBarElement, categoryTabsElement, ...bottomElements].filter(Boolean));
+  const scrollFrame = document.createElement("div");
+  scrollFrame.className = "simulator-scroll-frame";
+  const scrollBackdrop = document.createElement("div");
+  scrollBackdrop.className = "simulator-scroll-backdrop simulator-filter-surface";
   const scrollRegion = document.createElement("div");
   scrollRegion.className = "simulator-scroll-region";
   const scrollContent = document.createElement("div");
@@ -101,20 +105,26 @@ function arrangePhoneShell(phoneShell) {
     if (!reserved.has(child)) scrollContent.appendChild(child);
   });
   scrollRegion.appendChild(scrollContent);
+  scrollFrame.append(scrollBackdrop, scrollRegion);
   if (topBarElement) topBarElement.classList.add("simulator-filter-surface");
-  let categoryViewport = null;
+  let categoryFrame = null;
   if (categoryTabsElement) {
-    categoryViewport = document.createElement("div");
+    categoryFrame = document.createElement("div");
+    categoryFrame.className = "category-tabs-frame";
+    const categoryBackdrop = document.createElement("div");
+    categoryBackdrop.className = "category-tabs-backdrop simulator-filter-surface";
+    const categoryViewport = document.createElement("div");
     categoryViewport.className = "category-tabs-viewport";
     const categorySurface = document.createElement("div");
     categorySurface.className = "category-tabs-surface simulator-filter-surface";
     categorySurface.appendChild(categoryTabsElement);
     categoryViewport.appendChild(categorySurface);
+    categoryFrame.append(categoryBackdrop, categoryViewport);
   }
   bottomElements.forEach((element) => element.classList.add("simulator-filter-surface"));
   const stage = document.createElement("div");
   stage.className = "simulator-overlay-stage";
-  phoneShell.replaceChildren(...[topBarElement, categoryViewport, scrollRegion, ...bottomElements, stage].filter(Boolean));
+  phoneShell.replaceChildren(...[topBarElement, categoryFrame, scrollFrame, ...bottomElements, stage].filter(Boolean));
 }
 
 function screenShellMarkup(markup = renderScreen()) {
