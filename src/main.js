@@ -5,7 +5,7 @@ import { resolveExperimentSettings } from "./config/experiment-config.js";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261109-product-loading-transition-1";
+const simulatorBuildId = "js-20261109-announcement-pop-1";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
@@ -505,8 +505,7 @@ function announcementCarousel() {
     const image = announcement.image
       ? '<img src="' + announcement.image + '" alt="" />'
       : '<span class="announcement-placeholder" aria-hidden="true"></span>';
-    const label = announcement.label ? '<span class="announcement-label">' + announcement.label + '</span>' : '';
-    return '<article class="announcement-banner announcement-banner-' + ((index % 3) + 1) + '">' + image + '<div>' + label + '<strong>' + announcement.title + '</strong><p>' + announcement.subtitle + '</p></div></article>';
+    return '<article class="announcement-banner announcement-banner-' + ((index % 3) + 1) + '">' + image + '<div class="announcement-copy"><strong>' + announcement.title + '</strong><p>' + announcement.subtitle + '</p></div></article>';
   }).join("");
   const dots = announcements.map((announcement, index) => '<button class="announcement-dot ' + (index === state.announcementIndex ? 'is-active' : '') + '" data-action="announcement-dot" data-id="' + index + '" aria-label="' + (index + 1) + '件目のお知らせを表示" aria-current="' + (index === state.announcementIndex ? 'true' : 'false') + '"></button>').join("");
   return '<section class="home-announcement-section" aria-label="店舗からのお知らせ"><h2>店舗からのお知らせ</h2><div class="announcement-track">' + banners + '</div><div class="announcement-dots">' + dots + '</div></section>';
