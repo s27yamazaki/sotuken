@@ -97,6 +97,7 @@ export const experimentAnswerDefaults = {
 const validTaskIds = Object.keys(experimentTasks);
 const validColorSchemes = ["pastel", "contrast"];
 const validYellowValues = ["0", "1"];
+const shortColorSchemes = { "1": "pastel", "0": "contrast" };
 
 function readValidatedParameter(params, name, validValues, invalidParameters) {
   if (!params.has(name)) return null;
@@ -108,14 +109,28 @@ function readValidatedParameter(params, name, validValues, invalidParameters) {
   return null;
 }
 
+function readAliasedParameter(params, longName, shortName, validValues, shortValues, invalidParameters) {
+  if (params.has(longName)) {
+    return readValidatedParameter(params, longName, validValues, invalidParameters);
+  }
+  if (!params.has(shortName)) return null;
+
+  const shortValue = params.get(shortName);
+  const value = shortValues ? shortValues[shortValue] : shortValue;
+  if (value !== undefined && validValues.includes(value)) return value;
+
+  invalidParameters.push(shortName);
+  return null;
+}
+
 export function resolveExperimentSettings(search = "") {
   const params = new URLSearchParams(search);
   const invalidParameters = [];
-  const taskValue = readValidatedParameter(params, "task", validTaskIds, invalidParameters);
-  const color = readValidatedParameter(params, "color", validColorSchemes, invalidParameters);
-  const yellow = readValidatedParameter(params, "yellow", validYellowValues, invalidParameters);
+  const taskValue = readAliasedParameter(params, "task", "t", validTaskIds, null, invalidParameters);
+  const color = readAliasedParameter(params, "color", "p", validColorSchemes, shortColorSchemes, invalidParameters);
+  const yellow = readAliasedParameter(params, "yellow", "y", validYellowValues, null, invalidParameters);
   const task = taskValue === null ? null : Number(taskValue);
-  const hasAnyParameter = ["task", "color", "yellow"].some((name) => params.has(name));
+  const hasAnyParameter = ["task", "color", "yellow", "t", "p", "y"].some((name) => params.has(name));
   const isExperimentMode = task !== null && color !== null && yellow !== null;
 
   return {

@@ -1,11 +1,11 @@
 ﻿import { menuConfig, storeConfig } from "./config/menu-config.js";
 
 import { homeConfig } from "./config/menu-config.js";
-import { resolveExperimentSettings } from "./config/experiment-config.js";
+import { resolveExperimentSettings } from "./config/experiment-config.js?v=20261109-short-url-1";
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261109-announcement-pop-1";
+const simulatorBuildId = "js-20261109-short-url-1";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
