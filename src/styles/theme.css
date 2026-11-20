@@ -1258,6 +1258,17 @@
   font-size: 14px;
 }
 
+.completion-close-notice {
+  margin: 26px 0 0;
+  padding: 16px;
+  border: 2px solid var(--theme-selected, #b83f2a);
+  border-radius: 8px;
+  background: var(--theme-selected-soft, rgba(184, 63, 42, 0.22));
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
 @media (max-width: 360px) {
   .product-grid {
     gap: 10px;

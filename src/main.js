@@ -5,7 +5,7 @@ import { resolveExperimentSettings } from "./config/experiment-config.js?v=20261
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261109-short-url-1";
+const simulatorBuildId = "js-20261121-completion-screen-1";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
@@ -266,20 +266,6 @@ function cartQuantityForProduct(productId) {
 
 function orderTotalPrice() {
   return cartTotalPrice() + (state.orderType === "delivery" ? deliveryFee : 0);
-}
-
-function resetCompletedOrder() {
-  state.cartItems = [];
-  state.quantity = 1;
-  state.selectedOptions = {};
-  state.expandedOptionGroupId = null;
-  state.selectedPayment = null;
-  state.deliveryAddress = "";
-  state.deliveryPhoneParts = ["", "", ""];
-  state.menuScrollY = 0;
-  state.detailScrollY = 0;
-  state.experimentResult = null;
-  state.copyStatus = "";
 }
 
 function finalizeExperimentOrder() {
@@ -665,7 +651,7 @@ function completeScreen() {
     ? '<div class="experiment-reception"><span>受付番号</span><p class="experiment-reception-number">' + receptionNumber + '</p><p>受付番号をコピーして、Googleフォームに戻って入力欄に貼り付けてください。</p><button class="primary" data-action="copy-reception">受付番号をコピー</button><p class="copy-status" role="status" aria-live="polite" aria-atomic="true">' + state.copyStatus + '</p></div>'
     : '<p class="order-number">A-001</p>';
   return topBar("注文完了", {}) +
-    '<section class="complete"><strong>注文が完了しました</strong><p>これは研究用シミュレータのため、実際の注文は行われません。</p>' + numberMarkup + '<button class="primary" data-action="complete-home">ホームへ戻る</button></section>';
+    '<section class="complete"><strong>注文が完了しました</strong><p>これは研究用シミュレータのため、実際の注文は行われません。</p>' + numberMarkup + '<p class="completion-close-notice">アンケートの回答が終わったら、この画面を閉じてください。</p></section>';
 }
 
 function renderScreen() {
@@ -784,7 +770,6 @@ app.addEventListener("click", (event) => {
     else back();
   }
   if (action === "home") { state.cartItems = []; state.screen = "home"; state.history = []; render(); }
-  if (action === "complete-home") { resetCompletedOrder(); state.screen = "home"; state.history = []; render(); }
   if (action === "announcement-dot") showAnnouncement(Number(id));
   if (action === "store") {
     mistapTracker.selectOrderType("pickup");
