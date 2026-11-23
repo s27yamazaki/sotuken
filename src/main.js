@@ -5,7 +5,7 @@ import { resolveExperimentSettings } from "./config/experiment-config.js?v=20261
 import { createMistapTracker } from "./experiment/mistap-tracker.js";
 import { evaluateFinalOrder, generateReceptionNumber } from "./experiment/experiment-result.js";
 
-const simulatorBuildId = "js-20261121-completion-screen-1";
+const simulatorBuildId = "js-20261123-remove-social-links-1";
 const app = document.querySelector("#app");
 const runtimeExperimentSettings = resolveExperimentSettings(window.location.search);
 const mistapTracker = createMistapTracker(runtimeExperimentSettings);
@@ -506,10 +506,6 @@ function homeScreen() {
       '<button class="home-order-card is-delivery" data-action="delivery"><span><strong>デリバリー</strong><small>ご指定先へお届け</small></span><span class="home-card-arrow" aria-hidden="true">›</span></button>' +
     '</div></section>' +
     '<section class="home-info-section"><h2>営業時間</h2><p>' + homeConfig.businessHours + '</p></section>' +
-    '<section class="home-social-section"><h2>公式SNS</h2><div class="home-social-links">' +
-      '<a href="' + homeConfig.socialLinks.instagram + '" target="_blank" rel="noopener noreferrer" aria-label="Instagramを新しいタブで開く"><span class="social-icon social-instagram" aria-hidden="true"><img src="./assets/images/instagram-profile.png" alt="" /></span><span>Instagram</span></a>' +
-      '<a href="' + homeConfig.socialLinks.facebook + '" target="_blank" rel="noopener noreferrer" aria-label="Facebookを新しいタブで開く"><span class="social-icon social-facebook" aria-hidden="true">f</span><span>Facebook</span></a>' +
-    '</div></section>' +
   '</main>' + bottomNav("home");
 }
 

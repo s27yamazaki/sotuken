@@ -323,8 +323,7 @@
 }
 
 .home-order-section,
-.home-info-section,
-.home-social-section {
+.home-info-section {
   padding: 28px 0;
 }
 
@@ -334,8 +333,7 @@
 }
 
 .home-order-section h2,
-.home-info-section h2,
-.home-social-section h2 {
+.home-info-section h2 {
   margin: 0 0 18px;
   color: #333;
   font-size: 19px;
@@ -404,53 +402,6 @@
   font-size: 23px;
   font-weight: 900;
   text-align: center;
-}
-
-.home-social-links {
-  display: flex;
-  justify-content: center;
-  gap: 38px;
-}
-
-.home-social-links a {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  color: #333;
-  font-size: 14px;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.social-icon {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 17px;
-  font-weight: 900;
-}
-
-.social-instagram {
-  box-sizing: border-box;
-  padding: 3px;
-  overflow: hidden;
-  background: #34363d;
-}
-
-.social-instagram img {
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.social-facebook {
-  background: #1877f2;
-  font-size: 28px;
 }
 
 .bottom-nav {
@@ -1672,11 +1623,9 @@
 .phone-shell[data-color-scheme] .home-announcement-section h2,
 .phone-shell[data-color-scheme] .home-order-section h2,
 .phone-shell[data-color-scheme] .home-info-section h2,
-.phone-shell[data-color-scheme] .home-social-section h2,
 .phone-shell[data-color-scheme] .home-order-card,
 .phone-shell[data-color-scheme] .store-card,
 .phone-shell[data-color-scheme] .home-info-section p,
-.phone-shell[data-color-scheme] .home-social-links a,
 .phone-shell[data-color-scheme] .store-list-title,
 .phone-shell[data-color-scheme] .category-tabs button,
 .phone-shell[data-color-scheme] .note,

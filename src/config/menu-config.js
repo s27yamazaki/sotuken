@@ -55,10 +55,6 @@ export const homeConfig = {
       image: "./assets/images/announcement-frozen-croquette.png",
     },
   ],
-  socialLinks: {
-    instagram: "https://www.instagram.com/ota_croquette/",
-    facebook: "https://www.facebook.com/kitchenkorokke/",
-  },
 };
 
 export const menuConfig = {
